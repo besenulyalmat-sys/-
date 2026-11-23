@@ -185,7 +185,6 @@ input{font:inherit;font-size:18px;width:100%;padding:14px 16px;border-radius:14p
   <symbol id="orn" viewBox="0 0 100 50"><path d="M50 48V30C50 16 40 6 28 8 16 10 12 24 21 28c7 3 12-4 7-8M50 30C50 16 60 6 72 8c12 2 16 16 7 20-7 3-12-4-7-8" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 <div id="app"></div>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 {
@@ -323,8 +322,24 @@ const LET='ABCD';
 const $=s=>document.querySelector(s);
 const app=$('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const PREFIX='tulga-ujym-v2-';
-const ICE={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'}]}};
+/* ---- Байланыс: MQTT (WebSocket) ашық серверлері арқылы — кез келген интернетте жұмыс істейді ---- */
+const NS='tulgaujym/v3/';
+const BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'];
+const LIBS=['https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js','https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js','https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js'];
+function loadLib(){return new Promise(res=>{if(window.mqtt)return res(true);const t=i=>{if(i>=LIBS.length)return res(false);const sc=document.createElement('script');sc.src=LIBS[i];sc.onload=()=>window.mqtt?res(true):t(i+1);sc.onerror=()=>t(i+1);document.head.appendChild(sc);};t(0);});}
+const dec=pl=>{try{return JSON.parse(typeof pl==='string'?pl:new TextDecoder().decode(pl));}catch(e){return null;}};
+/* бір брокерге қосылу; сәтсіз болса — келесісіне. cb(client, index) */
+function mconnect(pref,onUp,onDown){
+ let i=pref||0,cl=null,tried=0,gotUp=false;
+ const go=()=>{
+  cl=mqtt.connect(BROKERS[i],{clientId:'tuj_'+Math.random().toString(36).slice(2,12),clean:true,keepalive:30,reconnectPeriod:2500,connectTimeout:8000,protocolVersion:4});
+  const myCl=cl,myI=i;let ok=false;
+  const fail=setTimeout(()=>{if(!ok&&!gotUp&&tried<BROKERS.length-1){tried++;try{myCl.end(true)}catch(e){}i=(i+1)%BROKERS.length;go();}},9000);
+  cl.on('connect',()=>{ok=true;gotUp=true;clearTimeout(fail);onUp(myCl,myI);});
+  cl.on('offline',()=>onDown&&onDown());cl.on('close',()=>onDown&&onDown());
+ };
+ go();
+}
 const band=n=>`<div class="band" aria-hidden="true">${Array.from({length:n},()=>'<svg><use href="#orn"/></svg>').join('')}</div>`;
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 const shade=(h,f)=>{const n=parseInt(h.slice(1),16);const c=[n>>16,(n>>8)&255,n&255].map(v=>Math.round(v*f));return '#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');};
@@ -489,9 +504,8 @@ const castLegend=sc=>`<div class="castl">${Object.keys(sc.cast).map(id=>`<span c
 
 /* ======================= БАСТАПҚЫ БЕТ ======================= */
 const params=new URLSearchParams(location.search);
-if(params.get('room'))player(params.get('room').toUpperCase());
-else if(params.has('play'))player('');
-else landing();
+const route=()=>{if(params.get('room'))player(params.get('room').toUpperCase(),+(params.get('b')||0));else if(params.has('play'))player('',0);else landing();};
+loadLib().then(route);
 
 function landing(){
  document.body.className='';
@@ -502,45 +516,50 @@ function landing(){
   <div class="roles"><button class="btn" id="asHost">Мен — оқытушы (тақта)</button><button class="ghost btn" id="asPlay">Мен — студент</button></div>
   ${location.protocol==='file:'?'<p class="err">Бет компьютерден ашылды. Студенттер телефонмен қосылуы үшін оны интернетке жариялаңыз (мысалы, GitHub Pages).</p>':''}
  </div></div>`;
- $('#asHost').onclick=host;$('#asPlay').onclick=()=>player('');
+ $('#asHost').onclick=host;$('#asPlay').onclick=()=>player('',0);
 }
 
 /* ======================= ТАҚТА (ОҚЫТУШЫ) ======================= */
 function host(){
  document.body.className='host';
- if(typeof Peer==='undefined'){app.innerHTML='<div class="landing"><p class="err">PeerJS кітапханасы жүктелмеді. Интернетті тексеріп, бетті жаңартыңыз.</p></div>';return;}
+ if(!window.mqtt){app.innerHTML='<div class="landing"><p class="err">Байланыс кітапханасы жүктелмеді. Интернетті тексеріп, бетті жаңартыңыз.</p></div>';return;}
  const S={phase:'lobby',players:{},teams:[],si:0,show:false,reveal:false,deadline:0,rev:[],log:[],played:false};
- let peer=null,code='',ready=false,net='',botN=0,stage=null,openOpt=-1;
+ let cl=null,bi=0,code='',ready=false,net='',botN=0,stage=null,openOpt=-1,online=false;
  const IMG={};
  const tryImg=id=>new Promise(res=>{const exts=['png','jpg','jpeg','webp'];const t=i=>{if(i>=exts.length)return res(null);const im=new Image();im.onload=()=>res(im.src);im.onerror=()=>t(i+1);im.src='comics/'+id+'.'+exts[i];};t(0);});
  if(location.protocol!=='file:'){R1.forEach((_,i)=>tryImg('r1-'+(i+1)).then(s=>{if(s)IMG['r1-'+(i+1)]=s;}));R2.forEach((_,i)=>tryImg('r2-'+(i+1)).then(s=>{if(s)IMG['r2-'+(i+1)]=s;}));}
  const mode={};
  const P=()=>Object.values(S.players);
- const joinUrl=()=>location.origin+location.pathname+'?room='+code;
+ const joinUrl=()=>location.origin+location.pathname+'?room='+code+(bi?'&b='+bi:'');
  const log=t=>{S.log.unshift(t);S.log=S.log.slice(0,5);const f=$('#feed');if(f)f.innerHTML=S.log.map(x=>`<div>${esc(x)}</div>`).join('');};
  function newPeer(){
   const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';code=Array.from({length:4},()=>A[Math.floor(Math.random()*A.length)]).join('');
-  ready=false;peer=new Peer(PREFIX+code,ICE);
-  peer.on('open',()=>{ready=true;net='';render();});
-  peer.on('connection',c=>{c.on('data',d=>onMsg(c,d));c.on('close',()=>{P().forEach(p=>{if(p.conn===c){p.conn=null;p.on=false;}});live();});});
-  peer.on('error',e=>{if(e.type==='unavailable-id'){peer.destroy();newPeer();}else if(e.type!=='peer-unavailable'){net='Байланыс қатесі: '+e.type;if(S.phase==='lobby')render();}});
-  peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}});
-  render();
+  ready=false;render();
+  mconnect(0,(c,i)=>{
+   const first=!cl;cl=c;bi=i;online=true;
+   if(first){cl.on('message',(tp,pl)=>{const d=dec(pl);if(d)onMsg(d);});}
+   cl.subscribe(NS+code+'/up',{qos:1},err=>{if(err){net='Серверге жазыла алмадық';}else{ready=true;net=bi?'Негізгі сервер жауап бермеді — студенттер тек QR-код арқылы кірсін.':'';}
+    if(S.phase==='lobby')render();else netBadge();syncAll();});
+  },()=>{online=false;netBadge();});
+  setTimeout(()=>{if(!ready){net='Серверге қосылу мүмкін болмады. Интернетті тексеріп, бетті жаңартыңыз.';if(S.phase==='lobby')render();}},20000);
  }
- function send(p){if(p.conn&&p.conn.open){try{p.conn.send({t:'state',v:view(p)})}catch(e){}}}
+ function netBadge(){const b=$('#net');if(b)b.textContent=online?'байланыс бар':'байланыс үзілді…';if(b)b.style.color=online?'var(--P)':'var(--C)';}
+ function send(p){if(p.bot||!cl)return;try{cl.publish(NS+code+'/p/'+p.pid,JSON.stringify({t:'state',v:view(p)}),{qos:1});}catch(e){}}
  const syncAll=()=>P().forEach(send);
  const syncTeam=ti=>{if(ti!=null&&S.teams[ti])S.teams[ti].m.forEach(id=>send(S.players[id]));};
- function onMsg(c,d){
+ function onMsg(d){
   if(!d||typeof d!=='object')return;
+  const id=String(d.pid||'').replace(/[^a-z0-9]/gi,'').slice(0,40);if(!id)return;
+  if(S.players[id]){S.players[id].seen=Date.now();if(!S.players[id].on){S.players[id].on=true;live();}}
+  if(d.t==='ping')return;
   if(d.t==='join'){
-   const id=String(d.pid||'').slice(0,40);if(!id)return;
    const nm=String(d.name||'').trim().slice(0,22)||'Қонақ';
    let p=S.players[id];
    if(!p){p=S.players[id]={pid:id,name:nm,a1:{},votes:{},res:null,team:null,refl:null};log(nm+' ойынға қосылды');if(S.teams.length)late(p);}
-   p.name=nm;p.conn=c;p.on=true;c.pid=id;send(p);
+   p.name=nm;p.on=true;p.seen=Date.now();send(p);
    if(S.phase==='teams')render();else live();return;
   }
-  const p=S.players[c.pid];if(p)apply(p,d);
+  const p=S.players[id];if(p)apply(p,d);
  }
  function apply(p,d){
   if(d.t==='a1'&&S.phase==='r1'&&d.si===S.si&&Number.isInteger(d.k)&&d.k>=0&&d.k<4){
@@ -627,8 +646,9 @@ function host(){
  const PH={lobby:'Күту залы',r1:'1-раунд · Мен кіммін?',r1end:'1-раунд · Топтың портреті',teams:'Командалар',r2play:'2-раунд · Ұжым сынағы',r2vote:'2-раунд · Командалық шешім',r2rev:'2-раунд · Сараптама',refl:'Рефлексия',end:'Қорытынды'};
  function frame(main,cls,btns){
   if(stage){stage.destroy();stage=null;}
-  app.innerHTML=`${band(70)}<div class="top"><svg width="40" height="20" class="orn"><use href="#orn"/></svg><span class="ttl">Тұлғадан — ұжымға</span>${code?`<span class="code">${code}</span>`:''}<span class="ph">${PH[S.phase]}</span></div>
+  app.innerHTML=`${band(70)}<div class="top"><svg width="40" height="20" class="orn"><use href="#orn"/></svg><span class="ttl">Тұлғадан — ұжымға</span>${code?`<span class="code">${code}</span>`:''}<span id="net" style="font-size:14px"></span><span class="ph">${PH[S.phase]}</span></div>
   <div class="main ${cls}">${main}</div><div class="bar">${btns}</div>`;
+  if(code)netBadge();
  }
  function mountStage(sc,key,autoplay){
   const box=$('#stage');const img=IMG[key];if(mode[key]==null)mode[key]=img?'img':'pix';
@@ -647,7 +667,7 @@ function host(){
    frame(`<div class="hero"><div class="kick">Практикалық сабақ · 21–22 тақырып</div><h1>Тұлғадан —<br><em>ұжымға</em></h1>
     <p>1-раунд: әркім пиксель-оқиғаларда өзін қалай ұстайтынын таңдайды — соңында жеке талдау. 2-раунд: командалар топтың шиеленісті жағдайларын шешеді.</p>
     <div class="count">Қатысушылар: <b id="pc">0</b></div><div class="cloud" id="pl"></div></div>
-    <div class="qrcard">${ready?`<div id="qr"></div><div class="big">${code}</div><small>${esc(joinUrl())}</small>`:`<div id="qr" style="color:#2a5a60">Бөлме ашылуда…</div>`}${net?`<p class="err">${esc(net)}</p>`:''}</div>`,'lobby',
+    <div class="qrcard">${ready?`<div id="qr"></div><div class="big">${code}</div><small>${esc(joinUrl())}</small>`:`<div id="qr" style="color:#2a5a60;text-align:center">Серверге қосылуда…</div>`}${net?`<p class="err">${esc(net)}</p>`:''}</div>`,'lobby',
     `<button class="ghost btn" id="bb">+5 сынақ боты</button><span class="sp"></span><span class="mut">Телефон камерасымен QR-кодты сканерлеңіз</span><button class="btn" id="go">1-раундты бастау</button>`);
    if(ready&&typeof QRCode!=='undefined')new QRCode($('#qr'),{text:joinUrl(),width:340,height:340,colorDark:'#0c3a40',colorLight:'#f6f2ea',correctLevel:QRCode.CorrectLevel.M});
    $('#bb').onclick=()=>addBots(5);$('#go').onclick=()=>startR1(0);
@@ -752,16 +772,17 @@ function host(){
   const n=$('#tnum'),b=$('#tbar');if(n)n.textContent=Math.ceil(r/1000);if(b)b.style.width=(r/(QTIME*1000)*100)+'%';
   if(r<=0)reveal();
  },250);
+ setInterval(()=>{let ch=false;P().forEach(p=>{if(!p.bot&&p.on&&Date.now()-(p.seen||0)>30000){p.on=false;ch=true;}});if(ch)live();},5000);
  newPeer();
 }
 
 /* ======================= СТУДЕНТ ТЕЛЕФОНЫ ======================= */
-function player(code0){
+function player(code0,b0){
  document.body.className='phone';
- let code=code0,peer=null,conn=null,V=null,retrying=false,dead=false;
+ let code=code0,cl=null,V=null,bi=b0||0,joinT=null,pingT=null,online=false;
  let pid=ls.get('tuj-pid');if(!pid){pid='p'+Math.random().toString(36).slice(2,10);ls.set('tuj-pid',pid);}
  let name=ls.get('tuj-name')||'';
- const send=d=>{if(conn&&conn.open){try{conn.send(d)}catch(e){}}};
+ const send=d=>{if(cl&&online){try{cl.publish(NS+code+'/up',JSON.stringify({...d,pid}),{qos:1});}catch(e){}}};
  const head=()=>V&&V.team?`<div class="who"><span class="emb" style="background:${V.team.c}">${esc(V.team.name[0])}</span>${esc(V.name)} · ${esc(V.team.name)} командасы · ${V.team.score} ұпай</div>`:`<div class="who"><svg width="30" height="15" class="orn"><use href="#orn"/></svg>${esc(V?V.name:name)}</div>`;
  const look=t=>`<div class="look">${eyeSvg}<span>${t}</span></div>`;
  function form(err){
@@ -769,20 +790,27 @@ function player(code0){
    <div class="pcard" style="display:grid;gap:12px">${code?`<div class="mut">Бөлме: <b style="color:var(--ink)">${esc(code)}</b></div>`:'<label>Бөлме коды<input id="cd" maxlength="4" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2em;margin-top:6px"></label>'}
    <label>Атыңыз<input id="nm" maxlength="22" value="${esc(name)}" autocomplete="given-name" style="margin-top:6px"></label>
    ${err?`<div class="err">${esc(err)}</div>`:''}<button class="btn" id="go">Кіру</button></div></div>`;
-  $('#go').onclick=()=>{const n=$('#nm').value.trim();const c=code||($('#cd')?$('#cd').value.trim().toUpperCase():'');if(!n||c.length!==4){form('Код (4 таңба) мен атыңызды енгізіңіз');return;}name=n;code=c;ls.set('tuj-name',n);connect();};
+  $('#go').onclick=()=>{const n=$('#nm').value.trim();const c=code||($('#cd')?$('#cd').value.trim().toUpperCase():'');if(!n||c.length!==4){form('Код (4 таңба) мен атыңызды енгізіңіз');return;}name=n;code=c;ls.set('tuj-name',n);if(cl&&online){wait('Тақтаны іздеп жатырмын…','Бөлме: '+esc(code));cl.subscribe(NS+code+'/p/'+pid,{qos:1},()=>askJoin(0));}else connect();};
  }
  function wait(t,sub){app.innerHTML=`${head()}<div class="pcard" style="text-align:center;padding:36px 20px"><svg width="80" height="40" class="orn"><use href="#orn"/></svg><h2 style="margin:14px 0 8px">${t}</h2><p class="mut">${sub||''}</p></div>`;}
  function connect(){
-  if(typeof Peer==='undefined'){form('Кітапхана жүктелмеді. Интернетті тексеріңіз.');return;}
-  wait('Қосылуда…','Бір сәт');
-  if(peer)try{peer.destroy()}catch(e){}
-  peer=new Peer(ICE);
-  peer.on('open',openConn);
-  peer.on('error',e=>{if(e.type==='peer-unavailable'&&!V){dead=true;form('Бөлме табылмады. Кодты тексеріңіз.');}else retry();});
-  peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}});
+  if(!window.mqtt){form('Байланыс кітапханасы жүктелмеді. Интернетті тексеріп, бетті жаңартыңыз.');return;}
+  wait('Серверге қосылуда…','Бір сәт');
+  let first=true;
+  mconnect(bi,(c,i)=>{
+   cl=c;online=true;
+   if(first){first=false;cl.on('message',(tp,pl)=>{const d=dec(pl);if(d&&d.t==='state'){clearTimeout(joinT);onState(d.v);}});
+    clearInterval(pingT);pingT=setInterval(()=>send({t:'ping'}),10000);}
+   cl.subscribe(NS+code+'/p/'+pid,{qos:1},()=>{if(!V)wait('Тақтаны іздеп жатырмын…','Бөлме: '+esc(code));askJoin(0);});
+  },()=>{online=false;if(V)wait('Байланыс үзілді','Қайта қосылуда… Интернетті тексеріңіз.');});
  }
- function openConn(){dead=false;conn=peer.connect(PREFIX+code,{reliable:true});conn.on('open',()=>send({t:'join',pid,name}));conn.on('data',d=>{if(d&&d.t==='state')onState(d.v);});conn.on('close',retry);}
- function retry(){if(retrying||dead)return;retrying=true;if(V)wait('Байланыс үзілді','Қайта қосылуда…');setTimeout(()=>{retrying=false;if(peer&&!peer.destroyed){if(peer.disconnected){try{peer.reconnect()}catch(e){}}openConn();}else connect();},2000);}
+ function askJoin(n){
+  send({t:'join',name});clearTimeout(joinT);
+  joinT=setTimeout(()=>{
+   if(n>=3&&!V){app.innerHTML=`<div class="pcard" style="margin-top:10vh"><h2>Тақта жауап бермейді</h2><p class="mut">Бөлме коды <b style="color:var(--ink)">${esc(code)}</b> дұрыс па? Оқытушының экранында ойын ашық тұр ма? Мүмкін болса, QR-кодты қайта сканерлеңіз.</p><button class="btn" id="again" style="width:100%">Қайта көру</button><button class="ghost btn" id="chg" style="width:100%;margin-top:10px">Кодты өзгерту</button></div>`;
+    $('#again').onclick=()=>{wait('Тақтаны іздеп жатырмын…','Бөлме: '+esc(code));askJoin(0);};$('#chg').onclick=()=>{code='';form();};return;}
+   askJoin(n+1);},4000);
+ }
  function onState(v){V=v;draw();}
  function draw(){
   const v=V;
