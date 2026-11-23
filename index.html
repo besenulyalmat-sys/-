@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Тұлғадан — ұжымға</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Golos+Text:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: ойын-сабақ — жарқын, бірақ ғылыми мазмұны салмақты
+   IDEA: интерактив тақтадағы пиксель-комикс: студенттер өз тобын сырттан көреді
+   PICTURE: 320×180 пиксель-сахна (аудитория, жатақхана, зал), кейіпкерлер жүреді, сөйлейді
+   COLOUR and TYPE: терең көгілдір-жасыл жер, төрт темперамент түсі, маржан акцент; Unbounded + Golos Text
+   LAYOUT: тақта 16:9 — сахна сол жақта, басқару мен статистика оң жақта; телефонда бір баған */
+:root{--bg:#0c3a40;--bg2:#082b30;--card:#11474e;--card2:#16575f;--line:#2a6a72;--ink:#f6f2ea;--mut:#a7c6c3;--acc:#ff7a59;
+--S:#f6c445;--C:#ff6b57;--P:#5fd1bd;--M:#b3a6ff;--disp:Unbounded,"Golos Text",system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Golos Text",system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:var(--disp);font-weight:700;line-height:1.08;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer;border:0;border-radius:14px;min-height:48px;padding:12px 20px;background:var(--card2);transition:transform .12s,background .2s}
+button:active{transform:scale(.97)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--S);outline-offset:2px}
+.btn{background:var(--acc);color:#2a0c05;font-weight:700}
+.btn.ghost{background:transparent;border:2px solid var(--line);color:var(--ink);font-weight:600}
+.btn.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px #ff7a5944}}
+input{font:inherit;font-size:18px;width:100%;padding:14px 16px;border-radius:14px;border:2px solid var(--line);background:var(--bg2);color:var(--ink)}
+.mut{color:var(--mut)}
+.orn{color:var(--acc)}
+.kick{color:var(--acc);font-weight:700;font-size:15px;margin-bottom:8px}
+.band{height:30px;display:flex;gap:6px;overflow:hidden;opacity:.55;padding:3px 0;background:var(--bg2)}
+.band svg{flex:none;width:48px;height:24px;color:var(--S)}
+.band svg:nth-child(2n){color:var(--P)}
+.band svg:nth-child(3n){color:var(--acc)}
+.err{background:#4a1f1a;color:#ffd9cf;border-radius:14px;padding:12px 16px}
+/* ===== PIXEL STAGE ===== */
+.stagebox{position:relative;width:100%;max-width:calc((100vh - 210px)*16/9);aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#000;box-shadow:0 24px 50px -20px #000a;border:4px solid #14232a}
+.stagebox canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+.stagebox img.comic{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#f6f2ea}
+.ov{position:absolute;inset:0;pointer-events:none;font-size:clamp(11px,1.15vw,21px)}
+.bub{position:absolute;z-index:2;max-width:40%;background:#fff;color:#14232a;border:3px solid #14232a;padding:.4em .65em .45em;font-weight:600;line-height:1.28;box-shadow:4px 4px 0 #14232a;transition:opacity .3s;animation:bin .3s steps(3) backwards}
+.bub::after{content:"";position:absolute;left:var(--tl,50%);bottom:-9px;width:12px;height:12px;background:#fff;border:3px solid #14232a;border-top:0;border-left:0;transform:translateX(-50%) rotate(45deg)}
+.bub .nm{display:block;font-size:.72em;font-weight:800;color:var(--nc)}
+.bub.think{border-style:dashed;border-radius:22px;font-style:italic;box-shadow:none}
+.bub.think::after{border-radius:50%;border:3px dashed #14232a;bottom:-16px;width:9px;height:9px;transform:translateX(-50%)}
+.bub.old{opacity:.55}.bub.older{opacity:.25}
+@keyframes bin{from{transform:var(--tf) scale(.4);opacity:0}to{transform:var(--tf);opacity:1}}
+.emo{position:absolute;background:#14232a;color:#ffd84a;font:800 1.05em var(--disp);padding:.05em .45em;border:3px solid #ffd84a;animation:bob .5s steps(2) infinite alternate;transform:translate(0,-100%)}
+@keyframes bob{to{margin-top:-4px}}
+.cap{position:absolute;left:2%;top:3%;max-width:58%;background:#ffd84a;color:#14232a;border:3px solid #14232a;padding:.35em .65em;font-weight:700;line-height:1.3;box-shadow:4px 4px 0 #14232a;animation:bin .3s steps(3) both;--tf:none;transition:opacity .4s}
+.cap.dim{opacity:.4}
+.chat{position:absolute;left:3%;top:20%;width:38%;background:#0f171d;border:4px solid #000;border-radius:18px;padding:.6em;display:grid;gap:.4em;box-shadow:6px 6px 0 #0006}
+.chat div{background:#22313b;color:#e8eef2;border-radius:10px;padding:.35em .6em;line-height:1.3;animation:bin .3s steps(3) both;--tf:none}
+.chat b{color:#7fd6ff;display:block;font-size:.8em}
+.castl{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cl{display:flex;align-items:center;gap:7px;background:var(--card);border-radius:999px;padding:3px 12px 3px 3px;font-size:14px}
+.cl img{width:30px;height:30px;image-rendering:pixelated;background:#e9dcc0;border-radius:50%}
+.cl b{font-weight:700}
+/* ===== HOST ===== */
+.host #app{min-height:100vh;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:16px;padding:10px max(2.4vw,14px);border-bottom:1px solid var(--line)}
+.top .ttl{font-family:var(--disp);font-weight:700;font-size:18px}
+.top .ph{margin-left:auto;color:var(--mut);font-size:15px}
+.top .code{font-family:var(--disp);background:var(--card);padding:4px 12px;border-radius:10px;font-size:17px;letter-spacing:.08em}
+.main{flex:1;display:grid;gap:clamp(14px,1.6vw,26px);padding:clamp(12px,1.6vw,24px) max(2.4vw,14px)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:10px max(2.4vw,14px);border-top:1px solid var(--line);background:var(--bg2)}
+.bar .sp{flex:1}
+.bar button{min-height:44px;padding:8px 18px}
+.lobby{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:center}
+.hero h1{font-size:clamp(40px,5.2vw,86px);font-weight:800}
+.hero h1 em{font-style:normal;color:var(--S)}
+.hero p{font-size:clamp(17px,1.45vw,23px);max-width:40ch;color:var(--mut)}
+.qrcard{background:var(--ink);color:#0c3a40;border-radius:28px;padding:clamp(16px,2vw,28px);display:grid;justify-items:center;gap:8px;box-shadow:0 30px 60px -20px #0008}
+.qrcard #qr{width:min(30vw,340px);aspect-ratio:1;display:grid;place-items:center}
+.qrcard #qr img,.qrcard #qr canvas{width:100%!important;height:auto!important}
+.qrcard .big{font-family:var(--disp);font-weight:800;font-size:clamp(34px,4vw,58px);letter-spacing:.12em}
+.qrcard small{font-size:14px;word-break:break-all;text-align:center;color:#2a5a60}
+.cloud{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;max-height:30vh;overflow:auto}
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--card);padding:7px 14px;border-radius:999px;font-weight:600;animation:pop .35s ease-out}
+.chip i{width:11px;height:11px;border-radius:50%;background:var(--P)}
+.chip.off{opacity:.45}.chip.off i{background:var(--mut)}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.count{font-family:var(--disp);font-size:clamp(20px,1.8vw,30px);margin-top:20px}
+.count b{color:var(--S)}
+.sc{grid-template-columns:minmax(0,1fr) minmax(300px,30%);align-items:start}
+.sc.wide{grid-template-columns:minmax(0,1fr) minmax(380px,44%)}
+.side{display:flex;flex-direction:column;gap:10px;min-height:100%}
+.side h2{font-size:clamp(20px,1.7vw,30px)}
+.opt-b{background:var(--card);border-radius:14px;padding:10px 14px;position:relative;overflow:hidden;cursor:default}
+.opt-b .fill{position:absolute;inset:0 auto 0 0;background:#ffffff14;transition:width .6s;width:0}
+.opt-b .row{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:start;font-size:clamp(14px,1.05vw,18px);line-height:1.35}
+.opt-b .L{font-family:var(--disp);font-weight:800;color:var(--S)}
+.opt-b .pc{font-family:var(--disp);font-weight:700}
+.opt-b .tp{display:inline-block;margin-top:4px;font-size:13px;font-weight:700;color:#0c3a40;border-radius:999px;padding:1px 9px}
+.opt-b.best{outline:3px solid var(--P)}
+.opt-b .why{position:relative;margin-top:8px;font-size:clamp(13px,.95vw,16px);color:var(--mut);display:none}
+.opt-b.open .why{display:block}
+.opt-b.click{cursor:pointer}
+.score{display:flex;gap:3px;margin-top:6px}
+.score i{width:16px;height:8px;border-radius:2px;background:var(--line)}
+.score i.on{background:var(--P)}
+.tst{background:var(--card);border-radius:14px;padding:9px 12px;border-left:6px solid var(--tc)}
+.tst b{font-size:17px}
+.tst .st{font-size:14px}
+.tst .st.tie{color:var(--C);font-weight:700}
+.tst .st.ok{color:var(--P);font-weight:700}
+.tst .scv{float:right;font-family:var(--disp);font-size:17px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;position:relative}
+.tag{background:var(--tc);color:#0c3a40;font-weight:700;font-size:13px;border-radius:999px;padding:2px 9px;animation:pop .4s both}
+.feed{margin-top:auto;display:grid;gap:4px;font-size:14px;color:var(--mut)}
+.feed div{animation:pop .3s}
+.timer{display:flex;align-items:center;gap:12px;font-family:var(--disp);font-size:30px;font-weight:800}
+.timer .tb{flex:1;height:10px;border-radius:6px;background:var(--line);overflow:hidden}
+.timer .tb div{height:100%;background:var(--acc)}
+.stagehint{font-size:14px;color:var(--mut);margin-top:8px}
+.r1end{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}
+.circ{width:min(100%,62vh);margin:auto;aspect-ratio:1}
+.circ svg{width:100%;height:100%;overflow:visible}
+.dot{animation:drop .7s cubic-bezier(.2,1.5,.4,1)}
+@keyframes drop{from{transform:translateY(-60px);opacity:0}}
+.legend{display:grid;gap:10px}
+.lg{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:14px;align-items:center;background:var(--card);border-radius:16px;padding:12px 18px}
+.lg i{width:20px;height:20px;border-radius:50%}
+.lg b{font-family:var(--disp);font-size:26px}
+.lg span{font-size:clamp(16px,1.25vw,20px)}
+.lg span small{display:block;color:var(--mut);font-size:14px}
+.teams{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));align-content:start}
+.tcard{background:var(--card);border-radius:24px;padding:20px;border-top:8px solid var(--tc);animation:pop .4s ease-out both}
+.tcard h3{font-size:26px;display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.emb{width:44px;height:44px;border-radius:50%;background:var(--tc);color:#0c3a40;display:grid;place-items:center;font-family:var(--disp);font-weight:800;font-size:19px;flex:none}
+.mem{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:18px;border-bottom:1px dashed var(--line)}
+.mem i{width:12px;height:12px;border-radius:50%;flex:none}
+.rbars{display:grid;gap:12px}
+.rb{display:grid;grid-template-columns:220px minmax(0,1fr) 50px;gap:14px;align-items:center;font-size:20px}
+.rb .tr{height:36px;background:var(--bg2);border-radius:10px;overflow:hidden}
+.rb .tr div{height:100%;background:var(--S);border-radius:10px;transition:width .6s}
+.rb b{font-family:var(--disp);text-align:right}
+.podium{display:flex;gap:18px;align-items:end;justify-content:center;min-height:300px}
+.pod{width:min(210px,20vw);text-align:center}
+.pod .blk{background:var(--tc);color:#0c3a40;border-radius:20px 20px 6px 6px;display:grid;place-items:center;font-family:var(--disp);font-weight:800;font-size:clamp(28px,3vw,46px);animation:grow .9s cubic-bezier(.2,1.2,.4,1) both;transform-origin:bottom}
+@keyframes grow{from{transform:scaleY(0)}}
+.pod h3{font-size:22px;margin:10px 0 2px}
+.quote{font-size:clamp(20px,1.7vw,27px);max-width:46ch;font-weight:500}
+/* ===== PHONE ===== */
+.phone #app{max-width:560px;margin:0 auto;padding:16px 16px 40px;min-height:100vh}
+.phone h1{font-size:30px}
+.phone h2{font-size:22px}
+.pcard{background:var(--card);border-radius:22px;padding:18px;margin-top:14px}
+.who{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--mut)}
+.who .emb{width:30px;height:30px;font-size:14px}
+.opts{display:grid;gap:10px;margin-top:14px}
+.opt{text-align:left;background:var(--card2);padding:14px 16px;font-size:17px;line-height:1.35;border:2px solid transparent;display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px}
+.opt .L{font-family:var(--disp);font-weight:800;color:var(--S)}
+.opt.sel{border-color:var(--S);background:#245f55}
+.look{display:flex;gap:12px;align-items:center;background:#ffd84a;color:#14232a;border-radius:16px;padding:12px 14px;font-weight:700;margin-top:14px}
+.look svg{flex:none}
+.res{border-radius:26px;padding:22px;color:#12323a;margin-top:14px}
+.res h1{font-size:34px}
+.res .nick{font-weight:700;margin:6px 0 12px}
+.res p{margin:8px 0}
+.res .lab{font-weight:800;font-size:13px;opacity:.75;display:block}
+.picks{display:grid;gap:6px;margin-top:10px;clear:both}
+.picks div{display:grid;grid-template-columns:100px minmax(0,1fr) 20px;gap:8px;align-items:center;font-size:14px;font-weight:600}
+.picks .t{height:10px;border-radius:5px;background:#12323a22;overflow:hidden}
+.picks .t i{display:block;height:100%;background:#12323a}
+.tbar{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:12px}
+.tbar div{height:100%;background:var(--acc);transition:width .25s linear}
+.mates{display:grid;gap:6px;margin-top:10px;font-size:15px}
+.mates div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding:4px 0}
+.big-ok{font-family:var(--disp);font-size:36px;font-weight:800}
+.landing{display:grid;place-items:center;min-height:calc(100vh - 30px);padding:24px;text-align:center}
+.landing .box{max-width:760px;display:grid;gap:20px;justify-items:center}
+.landing h1{font-size:clamp(38px,6vw,72px);font-weight:800}
+.landing h1 em{font-style:normal;color:var(--S)}
+.roles{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.roles button{min-width:240px;padding:18px 24px;font-size:18px}
+@media(max-width:900px){.lobby,.sc,.r1end{grid-template-columns:minmax(0,1fr)}.qrcard #qr{width:min(70vw,320px)}.stagebox{max-width:none}.rb{grid-template-columns:120px minmax(0,1fr) 40px;font-size:16px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="orn" viewBox="0 0 100 50"><path d="M50 48V30C50 16 40 6 28 8 16 10 12 24 21 28c7 3 12-4 7-8M50 30C50 16 60 6 72 8c12 2 16 16 7 20-7 3-12-4-7-8" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<div id="app"></div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+{
+/* ======================= КЕЙІПКЕРЛЕР ======================= */
+const CAST={
+ you:{name:'Сен',role:'басты кейіпкер',hair:'#2d2016',style:'short',top:'#e9e4d8',pants:'#3a4a6b'},
+ asem:{name:'Әсем',role:'староста',hair:'#3b2416',style:'pony',top:'#d8453b'},
+ asan:{name:'Асан',role:'белсенді',hair:'#151515',style:'short',top:'#3f7fd8'},
+ dana:{name:'Дана',role:'үздік студент',hair:'#5a3420',style:'bob',top:'#8e5fd0',glasses:1},
+ erlan:{name:'Ерлан',role:'әзілқой',hair:'#2a1a10',style:'cap',cap:'#e34b3a',top:'#f6c445'},
+ mira:{name:'Мира',role:'үнсіз',hair:'#2b1b14',style:'long',top:'#4fa87a'},
+ bekzat:{name:'Бекзат',role:'енжар',hair:'#111',style:'hood',top:'#7d8590'},
+ timur:{name:'Тимур',role:'жаңа студент',hair:'#6b3b1f',style:'short',top:'#ff8a3d',glasses:1},
+ kur:{name:'Куратор',role:'Гүлнар Сәкенқызы',hair:'#4a3a33',style:'bun',top:'#2f4f6f',blazer:1,pants:'#2f4f6f'}
+};
+
+/* ======================= 1-РАУНД: «МЕН КІММІН?» =======================
+   Әр нұсқа бір темпераментке сәйкес: S сангвиник, C холерик, P флегматик, M меланхолик */
+const R1=[
+ {title:'Бірінші күн',bg:'class',
+  cast:{erlan:'F1',asan:'F2',mira:'B0',bekzat:'B2',dana:'B3',you:{x:300,y:100,hidden:1}},
+  steps:[['cap','Бірінші оқу күні. Сен аудиторияға кірдің — ешкімді танымайсың.'],['enter','you',200],
+   ['say','erlan','Сосын ол маған: «Кешіріңіз, бұл деканат па?» дейді!'],['say','asan','Ха-ха-ха! Тоқта, күлкіден өлемін!'],
+   ['emo','mira','…',900],['think','you','Қайда отырсам екен?'],
+   ['cap','Екі бос орын қалды: көңілді топтың қасында және жалғыз отырған қыздың жанында.']],
+  q:'Сен не істейсің?',
+  o:[['Көңілді топқа барып, бірден әзілге қосыламын','S'],['Алдыңғы партаға отырып, оқытушыға бірінші болып өзімді таныстырамын','C'],['Жалғыз қыздың қасына үнсіз отырамын — асықпаймын','P'],['Ең артқа отырып, кімнің қандай екенін бақылаймын, іштей толқимын','M']]},
+ {title:'Түнгі чат',bg:'dorm',
+  cast:{you:{x:226,y:112,pose:'sit',phone:1}},
+  steps:[['cap','Түнгі 02:00. Жатақхана. Телефоның дірілдеді — топтық чат.'],
+   ['chat','Ерлан','[сенің сабақта ұйықтап отырған суретің] «Біздің топтың жұлдызы»'],['chat','Асан','ахахаха, мен де байқадым!'],
+   ['chat','Чат','15 адам күлкі белгісін қойды'],['emo','you','!',900],['chat','Дана','Балалар, бұл сәл артық емес пе?'],
+   ['think','you','…'],['cap','Бүкіл чат сенің жауабыңды күтіп тұр.']],
+  q:'Сен не істейсің?',
+  o:[['Өзім де күлетін стикер жіберіп, әзілді жалғастырамын','S'],['Бірден жазамын: «Маған ұнамады, қазір өшіріңдер»','C'],['Мән бермей ұйықтаймын — ертең бәрі ұмытады','P'],['Ұйықтай алмай, әр реакцияны қайта-қайта қараймын','M']]},
+ {title:'Старостаға ұсыныс',bg:'class',
+  cast:{asan:'F0',erlan:'F1',dana:'F2',you:'F3',mira:'B1',bekzat:'B3',kur:{x:300,y:100,hidden:1}},
+  steps:[['cap','Оқудың бірінші аптасы. Аудиторияға куратор кірді.'],['enter','kur',48],
+   ['say','kur','Топқа староста керек. Мен сені ұсынамын — бірінші күннен жауапты көріндің.'],['emo','you','?',900],
+   ['say','erlan','Оо, бастығымыз келді! Енді кешіксек жазаға тартасың ба?'],['emo','asan','#',500],['think','asan','Мен болғым келген еді…'],
+   ['say','dana','Ал егер ол келіспесе ше?'],['emo','bekzat','zzz',500],['cap','Бүкіл топ саған бұрылды.']],
+  q:'Сен не дейсің?',
+  o:[['«Келісемін! Қызық болады, бәрімен танысамын»','S'],['«Келісемін» — және бірінші күннен-ақ өз тәртібімді орнатамын','C'],['Басқа лайықты адам табылмаса ғана келісемін','P'],['Бас тартамын: жауапкершілік пен сын мені қорқытады','M']]},
+ {title:'Финалдағы жеңіліс',bg:'hall',
+  cast:{asan:{x:118,y:150},you:{x:160,y:150},dana:{x:202,y:150}},
+  steps:[['cap','Университеттік олимпиаданың финалы. Нәтиже жарияланды: сенің командаң — екінші орында.'],['emo','asan','…',900],
+   ['say','dana','Біз сенің жауабыңның кесірінен ұтылдық! Мен басқаша айт деп едім ғой!'],['emo','you','!',900],
+   ['say','asan','Дана, қазір емес…'],['cap','Бүкіл зал естіп қалды. Барлығы саған қарап тұр.']],
+  q:'Сен не істейсің?',
+  o:[['Әзілмен жеңілдетемін: «Келесі жылы міндетті түрде ұтамыз!»','S'],['Сол жерде дауласып, кінәнің кімде екенін дәлелдеймін','C'],['Үндемеймін, кейін қай жерде қателескенімізді сабырмен талдаймын','P'],['Бірнеше күн бойы өзімді кінәлап жүремін','M']]}
+];
+const ORD=[[1,0,3,2],[2,0,3,1],[0,3,1,2],[3,1,2,0]];
+const TYPES={
+ S:{name:'Сангвиник',nick:'Ұжымның «батареясы»',col:'#f6c445',d:'Ашық, тез бейімделеді, көңіл-күйі тұрақты. Жаңа ортада өзін еркін сезінеді.',plus:'Адамдарды біріктіреді: жаңа топта алғашқы байланысты көбіне дәл сіз орнатасыз.',grow:'Бастаған істі соңына дейін жеткізу — қызығушылық басылғанда да.'},
+ C:{name:'Холерик',nick:'Ұжымның «моторы»',col:'#ff6b57',d:'Энергиясы мол, шешімді тез қабылдайды, эмоциясы күшті әрі ашық.',plus:'Дағдарыста бастаманы өз қолына алып, топты қозғалысқа келтіреді.',grow:'Басқалардың қарқынын сыйлау және ашуды басқару.'},
+ P:{name:'Флегматик',nick:'Ұжымның «іргетасы»',col:'#5fd1bd',d:'Сабырлы, тұрақты, асықпайды. Бастаған ісін мұқият аяқтайды.',plus:'Шиеленіс кезінде тепе-теңдікті сақтап, топқа сенімділік береді.',grow:'Өз пікіріңізді ертерек әрі батылырақ айту.'},
+ M:{name:'Меланхолик',nick:'Ұжымның «сейсмографы»',col:'#b3a6ff',d:'Терең сезінеді, байқағыш, әр нәрсеге мұқият қарайды.',plus:'Топтағы көңіл-күй өзгерісін бірінші сезесіз, жұмыс сапасын қадағалайсыз.',grow:'Өзіңізді аз сынап, жетістігіңізді мойындау.'}
+};
+const D={S:[2,-2],C:[2,2],P:[-2,-2],M:[-2,2]};
+
+/* ======================= 2-РАУНД: «ҰЖЫМ СЫНАҒЫ» =======================
+   s — сарапшы бағасы (0–100). Бір ғана «дұрыс» жауап жоқ — әр нұсқаның өз құны бар. */
+const R2=[
+ {title:'Ортақ қор',bg:'class',stage:'Тартыс: рөлдер мен биліктің шекарасы анықталып жатыр.',
+  cast:{asan:'F0',dana:'F1',erlan:'F2',mira:'B1',bekzat:'B3',asem:{x:300,y:100,hidden:1}},
+  steps:[['cap','Дүйсенбі, бірінші пара алдында. Аудиторияға староста Әсем кірді.'],['enter','asem',48],
+   ['say','asem','Сәлем! Куратордың туған күніне әрқайсымыз 3000 теңгеден жинаймыз. Мен шештім — ертеңге дейін!'],
+   ['emo','bekzat','!',400],['say','bekzat','Үш мың? Мен стипендия алмаймын ғой…'],
+   ['say','dana','Неге алдымен бізден сұрамадың? Біз де топпыз ғой.'],
+   ['say','erlan','Сыйлыққа бізден — бір сессия бойы тыныштық!'],
+   ['say','asan','Дауласпаңдар! Мен 5000 беремін, бітті!'],
+   ['emo','mira','…',400],['think','mira','Менде де ақша жоқ, бірақ айтсам ұят болады…'],
+   ['say','asem','Онда бәрі ертеңге дейін тапсырсын. Тапсырмағанның аты чатқа шығады.'],
+   ['cap','Аудиторияда тыныштық орнады. Біреу топтық чаттан шығып кетті.']],
+  q:'Осы сәттен кейін Әсем не істеуі керек?',
+  o:[{t:'Шешімін өзгертпеу: старостаның беделі мен тәртіп маңызды',s:10,w:'Беделді сақтағандай көрінеді, бірақ наразылық жасырын қақтығысқа айналады. «Аты чатқа шығады» — бұл қысым, ұжымдық шешім емес.'},
+     {t:'Сома ерікті болсын: кім қанша алады, сонша берсін',s:65,w:'Әділетті көрінеді, бірақ кім аз бергені бәрібір белгілі болады. Ең бастысы — шешімді бір адам қабылдағаны — шешілмей қалады.'},
+     {t:'Чатта анонимді сауалнама: сыйлық керек пе, қанша, қандай',s:85,w:'Әркім қысымсыз пікір білдіреді, Мира сияқты үнсіздердің де даусы есептеледі. Бірақ сауалнама жанды диалогты, кешірім сұрауды алмастырмайды.'},
+     {t:'Үзілісте бәрін жинап, асыққанын мойындап, бірге шешу',s:100,w:'Староста қатесін мойындап, шешімді топқа қайтарады. Бұл — тартыс кезеңінен нормалануға өтудің ең сенімді жолы. Бірақ батылдық пен уақыт керек.'}]},
+ {title:'Үнсіз идея',bg:'class',stage:'Нормалану: ережелер қалыптасып жатыр — бірақ олар бәріне әділ ме?',
+  cast:{asan:'F0',dana:'F1',erlan:'F2',asem:'B2',mira:'B1',bekzat:'B3',kur:{x:300,y:100,hidden:1}},
+  steps:[['cap','Семинар. Куратор топтық жобаның тақырыбын бірге таңдауды ұсынды.'],['enter','kur',48],
+   ['say','kur','Кімде қандай идея бар? Уақыт — 5 минут.'],
+   ['emo','asan','!',300],['say','asan','Менде! Университет туралы подкаст жасайық! Мен жүргізуші боламын, сценарий де, монтаж да менде…'],
+   ['say','dana','Асан, подкастты өткен жылғы топ жасаған. Бізге жаңалық керек.'],
+   ['say','erlan','Подкастың аты дайын: «Асан және оның монологы»!'],
+   ['hand','mira',1],['emo','mira','?',1600],['hand','mira',0],['emo','mira','…',600],
+   ['emo','bekzat','zzz',400],
+   ['say','kur','Жарайды, уақыт бітті. Асанның идеясын аламыз.'],
+   ['cap','Үзілісте Мира Әсемге сыбырлады:'],
+   ['say','mira','Менің де идеям бар еді… Жатақхана тұрғындарының әңгімелерінен фотокөрме.']],
+  q:'Бұл жағдайдың басты себебі неде?',
+  o:[{t:'Асанның доминанттығы — ол басқаларға орын қалдырмайды',s:60,w:'Шындық бар: белсенді экстраверт кеңістікті толтырады. Бірақ Асанды «өшіру» мәселені шешпейді — ертең оның орнын басқа біреу басады.'},
+     {t:'Мираның батылсыздығы — бұл оның жеке мәселесі',s:25,w:'Тұлғалық ерекшелікті кемшілік деп қарау — қателік. Интроверт өз ойын айту үшін қауіпсіз жағдай мен уақыт керек.'},
+     {t:'Топта «бәрін тыңдау» нормасы жоқ: кім қатты сөйлесе, сол ұтады',s:100,w:'Мәселе жекелерде емес, топтың нормасында. Кезекпен сөйлеу, идеяларды жазбаша жинау сияқты ережелер әртүрлі темпераменттерге тең мүмкіндік береді.'},
+     {t:'Куратордың асығыстығы — 5 минут тым аз',s:70,w:'Уақыт шынымен аз. Бірақ уақыт көп берілсе де, норма өзгермесе, нәтиже сол күйі қалады — қатты сөйлейтін тағы да ұтады.'}]},
+ {title:'Жаңа студент',bg:'class',stage:'Тартысқа қайта оралу: жаңа мүше келгенде даму сызықты емес.',
+  cast:{asan:'F0',dana:'F1',erlan:'F2',mira:'B1',bekzat:'B3',asem:{x:44,y:176},timur:{x:300,y:100,hidden:1}},
+  steps:[['cap','3-курс. Топқа басқа университеттен Тимур ауысып келді.'],['enter','timur',92],
+   ['say','asem','Танысыңдар, бұл — Тимур! Бүгіннен бастап біздің топта.'],
+   ['say','erlan','Қош келдің! Бізде сессия кезінде бәрі бірге жылайды — дәстүр!'],
+   ['say','timur','Рахмет. Чаттарыңды оқыдым… 600 мем, 2 маңызды хабарлама. Бұрынғы тобымда бәрі тәртіпті еді.'],
+   ['emo','asan','#',300],['say','asan','Келе сала бізді үйретпексің бе?'],
+   ['say','dana','Бірақ ол дұрыс айтады. Мен кесте өзгергенін мемдердің арасынан таппай қалдым.'],
+   ['say','bekzat','Ұнамаса — бұрынғы тобыңа қайт.'],['emo','mira','…',500],
+   ['cap','Топ екіге бөлінді. Әсем не істерін білмей тұр.']],
+  q:'Топ үшін ең тиімді жол қайсы?',
+  o:[{t:'Тимурға топтың дәстүрлерін түсіндіріп, бейімделуін күту',s:40,w:'«Біз сияқты бол» деу — жаңа мүшенің тәжірибесінен бас тарту. Дана сияқты іштей келіспейтіндер де үнсіз қалады.'},
+     {t:'Чатты екіге бөлу: «Маңызды» және «Флуд» — мәселе шешілді',s:80,w:'Нақты әрі жылдам шешім, Тимурдың ұсынысы ескерілді. Бірақ Асан мен Тимурдың арасындағы шиеленіс сол күйі қалады.'},
+     {t:'Ештеңе істемеу — уақыт өте келе бәрі өзі басылады',s:10,w:'Шешілмеген тартыс жоғалмайды — топшаларға, жасырын қарсылыққа айналады.'},
+     {t:'Топ жиналысында нормаларды бірге қайта қарау, Тимурды да қосу',s:100,w:'Жаңа мүше келгенде топ уақытша тартыс кезеңіне оралады — бұл қалыпты. Нормаларды бірге қайта келісу бұл кезеңнен сындарлы өтуге мүмкіндік береді.'}]},
+ {title:'Дедлайн түні',bg:'class',stage:'Тиімді жұмысқа жақын, бірақ жауапкершілік біркелкі бөлінбеген.',
+  cast:{asem:'F0',asan:'F1',dana:'F2',erlan:'B1',mira:'B2'},
+  steps:[['cap','Кітапхананың оқу залы. Жобаны тапсыруға 12 сағат қалды. Бекзаттың орны бос.'],
+   ['say','asan','Жобаның жартысы әлі дайын емес! Бекзат қайда?'],
+   ['say','erlan','Бекзат желіде болған… үш күн бұрын.'],
+   ['say','dana','Оның бөлігін өзім қайта жазамын. Бәрібір ешкімге сенуге болмайды.'],
+   ['say','mira','Мен слайдтардың бәрін жасап қойдым…'],['emo','mira','…',900],
+   ['say','asem','Ал Бекзаттың атын жобаға жазамыз ба?'],
+   ['cap','Сол сәтте Бекзаттан хабарлама келді: «Кешіріңдер, кешкі жұмыстан шыға алмай жүрмін. Ертең бәрін түсіндіремін».']],
+  q:'Бекзатқа қатысты топ не істеуі керек?',
+  o:[{t:'Оқытушыға ашық айту — бағалау әділ болуы керек',s:50,w:'Әділ көрінеді, бірақ топ ішкі мәселені сыртқа шығарып, сенімді бұзады. Оның жұмыс істейтіні (1-сахнадағы стипендия!) ескерілмейді.'},
+     {t:'Бөлігін бөліп жасап, ертең Бекзатпен бетпе-бет сөйлесу',s:100,w:'Нәтиже сақталады, ал мәселе ашық талқыланады: Бекзаттың жағдайын түсініп, келесіде оған қолайлы рөл беруге болады.'},
+     {t:'Бөлігін жасап, ештеңе айтпау — топтың бірлігі маңызды',s:20,w:'Бұл — «әлеуметтік жалқаулықты» (Рингельман эффектісі) қолдау. Үнсіз «бірлік» ішкі ренішке айналады.'},
+     {t:'Атын жобадан алып тастау — жұмыс істемеген баға алмайды',s:40,w:'Қатаң, бірақ себебін білмей жазалау топты «жазалаушы» ортаға айналдырады. Келесі жолы ешкім проблемасын ашық айтпайды.'}]}
+];
+const STAGES=[
+ {name:'Қалыптасу',d:'Танысу, сыпайылық, сақтық'},{name:'Тартыс',d:'Рөл мен көшбасшылық үшін бәсеке, топшалар'},
+ {name:'Нормалану',d:'Ортақ ережелер, дәстүрлер, «біз» сезімі'},{name:'Тиімді жұмыс',d:'Өзін-өзі басқару, нәтижеге бағыт'},{name:'Тарау',d:'Мақсат орындалды, қоштасу'}];
+const TEAMS=[{name:'Бүркіт',c:'#f6c445'},{name:'Барыс',c:'#5fd1bd'},{name:'Тұлпар',c:'#ff7a59'},{name:'Сұңқар',c:'#b3a6ff'},{name:'Арқар',c:'#7fc8ff'}];
+const QTIME=60;
+const LET='ABCD';
+/* ================================================================== */
+
+const $=s=>document.querySelector(s);
+const app=$('#app');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PREFIX='tulga-ujym-v2-';
+const ICE={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'}]}};
+const band=n=>`<div class="band" aria-hidden="true">${Array.from({length:n},()=>'<svg><use href="#orn"/></svg>').join('')}</div>`;
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const shade=(h,f)=>{const n=parseInt(h.slice(1),16);const c=[n>>16,(n>>8)&255,n&255].map(v=>Math.round(v*f));return '#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');};
+const typeOf=(e,n,picks)=>{if(e===0||n===0){const c={S:0,C:0,P:0,M:0};picks.forEach(p=>c[p]++);return Object.keys(c).sort((a,b)=>c[b]-c[a])[0];}return e>0?(n>0?'C':'S'):(n>0?'M':'P');};
+const EMAX=R1.length*2;
+const quads=()=>`<path d="M300 300L30 300A270 270 0 0 1 300 30Z" fill="${TYPES.M.col}" opacity=".22"/><path d="M300 300L300 30A270 270 0 0 1 570 300Z" fill="${TYPES.C.col}" opacity=".22"/><path d="M300 300L570 300A270 270 0 0 1 300 570Z" fill="${TYPES.S.col}" opacity=".22"/><path d="M300 300L300 570A270 270 0 0 1 30 300Z" fill="${TYPES.P.col}" opacity=".22"/><circle cx="300" cy="300" r="270" fill="none" stroke="#f6f2ea55" stroke-width="2"/><path d="M30 300H570M300 30V570" stroke="#f6f2ea44" stroke-width="2" stroke-dasharray="6 8"/>`;
+const pos=(e,n,j)=>{let x=(e/EMAX)*235,y=-(n/EMAX)*235;if(j){x+=(Math.random()-.5)*40;y+=(Math.random()-.5)*40;}const r=Math.hypot(x,y);if(r>250){x*=250/r;y*=250/r;}return[300+x,300+y];};
+const eyeSvg='<svg width="34" height="22" viewBox="0 0 34 22"><path d="M2 11C8 3 26 3 32 11 26 19 8 19 2 11Z" fill="none" stroke="#14232a" stroke-width="3"/><circle cx="17" cy="11" r="5" fill="#14232a"/></svg>';
+
+/* ======================= ПИКСЕЛЬ ҚОЗҒАЛТҚЫШ ======================= */
+const PW=320,PH=180;
+const SEATS={B0:[110,112],B1:[160,112],B2:[210,112],B3:[260,112],F0:[95,146],F1:[150,146],F2:[205,146],F3:[260,146]};
+const BGC={};
+function makeBG(kind){
+ if(BGC[kind])return BGC[kind];
+ const c=document.createElement('canvas');c.width=PW;c.height=PH;const g=c.getContext('2d');
+ const R=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);};
+ if(kind==='class'){
+  R(0,0,PW,100,'#eadcbf');R(0,68,PW,30,'#d6c39b');R(0,68,PW,2,'#bba479');R(0,96,PW,4,'#8a6a45');
+  R(0,100,PW,80,'#b07a45');for(let y=100;y<PH;y+=9){R(0,y,PW,1,'#98673a');for(let x=((y/9)%2)*20;x<PW;x+=40)R(x,y,1,9,'#a06d3c');}
+  R(94,12,132,50,'#6b4a2b');R(97,15,126,44,'#2f5d4a');R(97,58,126,3,'#8a6a45');
+  const ch='#e8f1e8',man=(x,y)=>{R(x+1,y,3,3,ch);R(x,y+4,5,6,ch);R(x+1,y+10,1,4,ch);R(x+3,y+10,1,4,ch);};man(116,22);R(132,30,34,2,ch);R(162,27,2,8,ch);R(164,28,2,6,ch);R(166,30,2,2,ch);man(176,24);man(186,20);man(196,24);R(174,40,30,1,ch);R(108,48,44,1,'#cfe0cf');R(160,50,52,1,'#cfe0cf');
+  R(14,14,50,52,'#f2efe6');R(17,17,44,46,'#9fd3e8');R(17,49,44,14,'#bfe3f0');R(38,17,2,46,'#f2efe6');R(17,39,44,2,'#f2efe6');R(22,24,10,3,'#fff');R(26,22,6,2,'#fff');R(46,30,9,3,'#fff');
+  R(278,34,34,66,'#5f3a1f');R(281,37,28,63,'#8d5a32');R(284,42,22,24,'#7a4a28');R(284,70,22,24,'#7a4a28');R(302,66,3,3,'#e2b33c');
+  R(155,2,10,10,'#333');R(156,3,8,8,'#fff');R(159,4,1,4,'#333');R(160,7,2,1,'#333');
+  R(242,18,26,32,'#fff7e0');R(244,20,22,3,'#d8453b');R(244,26,18,1,'#999');R(244,30,20,1,'#999');R(244,34,14,1,'#999');
+  R(16,152,14,14,'#c0623a');R(14,150,18,3,'#a8532f');R(18,134,3,16,'#3f8a4f');R(22,128,3,22,'#4fa86a');R(26,138,3,12,'#3f8a4f');R(13,138,6,3,'#4fa86a');R(26,132,6,3,'#4fa86a');
+ }else if(kind==='dorm'){
+  R(0,0,PW,110,'#25345a');R(0,104,PW,6,'#1b2644');R(0,110,PW,70,'#4b3a2e');for(let y=110;y<PH;y+=10)R(0,y,PW,1,'#3f3026');
+  R(30,18,70,56,'#1a2236');R(34,22,62,48,'#0f1830');R(64,22,2,48,'#1a2236');R(34,45,62,2,'#1a2236');R(78,28,10,10,'#f6e7a8');R(82,28,6,6,'#0f1830');
+  for(const[a,b]of[[40,30],[52,58],[90,56],[44,64]])R(a,b,1,1,'#fff');
+  R(120,26,30,40,'#d8453b');R(124,30,22,6,'#f6c445');R(124,40,22,2,'#f2b0a8');R(124,46,16,2,'#f2b0a8');
+  R(160,110,140,8,'#6d4a33');R(160,96,140,16,'#7d5638');R(164,92,132,8,'#dfe6f0');R(220,96,80,18,'#3f6fb5');R(220,96,80,3,'#5a8ad0');R(166,86,26,9,'#f4f4f4');R(160,80,6,38,'#6d4a33');
+  R(20,112,36,26,'#6d4a33');R(18,108,40,5,'#7d5638');R(36,96,3,12,'#333');R(30,92,14,5,'#f6c445');
+  g.globalAlpha=.18;g.fillStyle='#f6e7a8';g.beginPath();g.moveTo(37,96);g.lineTo(10,140);g.lineTo(66,140);g.fill();g.globalAlpha=1;
+  R(214,108,10,1,'#7fd6ff');
+ }else if(kind==='hall'){
+  R(0,0,PW,PH,'#3a1219');for(let x=0;x<PW;x+=16){R(x,0,8,120,'#8e1f2b');R(x+8,0,8,120,'#7a1a25');R(x+3,0,2,120,'#a12a37');}
+  R(0,0,PW,10,'#5a121c');R(80,14,160,20,'#f6c445');R(83,17,154,14,'#ffd84a');g.fillStyle='#3a1219';g.font='bold 9px monospace';g.fillText('ОЛИМПИАДА ФИНАЛЫ',106,28);
+  R(0,120,PW,60,'#6b3e22');R(0,120,PW,4,'#8a5530');for(let y=128;y<PH;y+=10)R(0,y,PW,1,'#5a3319');
+  R(250,92,46,40,'#2a2a2a');R(254,96,38,4,'#f6c445');g.fillStyle='#fff';g.font='7px monospace';g.fillText('1. ТҮЛКІЛЕР',256,110);g.fillText('2. СЕНІҢ ТОБЫҢ',254,120);
+  g.globalAlpha=.16;g.fillStyle='#fff6c8';g.beginPath();g.moveTo(150,0);g.lineTo(110,170);g.lineTo(215,170);g.lineTo(170,0);g.fill();g.globalAlpha=1;
+  for(let x=10;x<PW;x+=22){R(x,166,14,14,'#1d0a0e');R(x+3,160,8,8,'#1d0a0e');}
+ }
+ BGC[kind]=c;return c;
+}
+function drawDesk(g,x,y){g.fillStyle='#7a4f2a';g.fillRect(x-15,y+5,30,10);g.fillStyle='#c58b4f';g.fillRect(x-17,y,34,5);g.fillStyle='#d9a066';g.fillRect(x-17,y,34,1);g.fillStyle='#5f3d20';g.fillRect(x-15,y+15,2,8);g.fillRect(x+13,y+15,2,8);}
+function drawChar(g,c,x,by,o,step,talk){
+ const sit=o.pose==='sit',h=sit?21:24,ox=Math.round(x)-5,oy=Math.round(by)-h-(o.walking&&step%2?1:0);
+ const R=(a,b,w,hh,col)=>{g.fillStyle=col;g.fillRect(ox+a,oy+b,w,hh);};
+ const sk=c.skin||'#f0c39a',hr=c.hair,tp=c.top,pn=c.pants||'#2c3550',sh='#1b1b1b',dk=shade(tp,.72);
+ g.fillStyle='rgba(0,0,0,.2)';g.fillRect(ox,oy+h-1+(o.walking&&step%2?1:0),10,2);
+ if(c.style==='long')R(1,2,8,11,hr);
+ if(c.style==='hood')R(1,0,8,9,dk);
+ if(c.style==='pony')R(8,3,2,6,hr);
+ R(1,9,8,7,tp);
+ if(c.blazer){R(4,9,2,6,'#f4f4f4');R(4,10,2,4,'#b8323a');}
+ if(c.style==='hood'){R(4,9,1,3,'#ddd');R(6,9,1,3,'#ddd');}
+ if(o.hand){R(9,2,1,8,tp);R(9,1,1,1,sk);R(0,10,1,6,tp);R(0,16,1,1,sk);}
+ else{R(0,10,1,6,tp);R(9,10,1,6,tp);R(0,16,1,1,sk);R(9,16,1,1,sk);}
+ if(o.phone){R(6,12,3,4,'#111');R(7,13,1,2,'#7fd6ff');}
+ R(4,8,2,1,sk);R(2,2,6,6,sk);
+ const st=c.style;
+ if(st==='short'||st==='pony'){R(3,0,4,1,hr);R(2,1,6,2,hr);R(2,3,1,1,hr);R(7,3,1,1,hr);}
+ else if(st==='bob'){R(3,0,4,1,hr);R(1,1,8,2,hr);R(1,3,1,4,hr);R(8,3,1,4,hr);}
+ else if(st==='long'){R(3,0,4,1,hr);R(1,1,8,2,hr);R(1,3,1,3,hr);R(8,3,1,3,hr);}
+ else if(st==='cap'){R(2,0,6,2,c.cap);R(1,2,9,1,c.cap);R(2,3,1,1,hr);R(7,3,1,1,hr);}
+ else if(st==='hood'){R(3,1,4,1,hr);R(2,0,6,1,dk);R(1,1,1,8,dk);R(8,1,1,8,dk);}
+ else if(st==='bun'){R(4,-2,2,2,hr);R(3,0,4,1,hr);R(2,1,6,1,hr);R(2,2,1,2,hr);R(7,2,1,2,hr);}
+ R(3,4,1,1,'#1a1a1a');R(6,4,1,1,'#1a1a1a');
+ if(c.glasses){R(2,4,2,1,'#222');R(5,4,3,1,'#222');R(3,4,1,1,'#cfeaf4');R(6,4,1,1,'#cfeaf4');}
+ if(o.sleep){R(3,4,1,1,sk);R(6,4,1,1,sk);R(3,5,1,1,'#1a1a1a');R(6,5,1,1,'#1a1a1a');}
+ R(4,6,2,talk?2:1,talk?'#6b2a22':'#b5735c');
+ if(sit){R(2,16,6,3,pn);R(2,19,3,2,sh);R(5,19,3,2,sh);}
+ else{const a=o.walking?step%2:0;R(2,16,3,a?5:6,pn);R(5,16,3,a?6:5,pn);R(2,a?21:22,3,2,sh);R(5,a?22:21,3,2,sh);}
+}
+const AV={};
+function avatar(id){
+ if(AV[id])return AV[id];
+ const c=document.createElement('canvas');c.width=12;c.height=12;const g=c.getContext('2d');
+ drawChar(g,CAST[id],6,23,{pose:'stand'},0,false);AV[id]=c.toDataURL();return AV[id];
+}
+const dur=t=>Math.min(5600,1300+String(t).length*46);
+class Stage{
+ constructor(box,scene,img){
+  this.box=box;this.alive=true;this.tok=0;this.t=0;
+  if(img){box.innerHTML=`<img class="comic" src="${img}" alt="${esc(scene.title)}">`;this.img=true;return;}
+  box.innerHTML='<canvas width="320" height="180"></canvas><div class="ov"></div>';
+  this.cv=box.querySelector('canvas');this.g=this.cv.getContext('2d');this.ov=box.querySelector('.ov');this.scene=scene;
+  this.loop=this.loop.bind(this);requestAnimationFrame(this.loop);
+ }
+ reset(){
+  const sc=this.scene;this.bg=makeBG(sc.bg);this.ch={};this.bubs=[];this.ov.innerHTML='';this.capEl=null;this.chatEl=null;this.emos={};
+  for(const[id,sp]of Object.entries(sc.cast)){
+   if(typeof sp==='string'){const[sx,sy]=SEATS[sp];this.ch[id]={id,c:CAST[id],x:sx,y:sy+4,pose:'sit',desk:sy};}
+   else this.ch[id]={id,c:CAST[id],x:sp.x,y:sp.y,pose:sp.pose||'stand',hidden:!!sp.hidden,phone:!!sp.phone};
+  }
+ }
+ destroy(){this.alive=false;this.tok++;}
+ loop(){
+  if(!this.alive)return;this.t++;const g=this.g;
+  if(this.bg){
+   g.drawImage(this.bg,0,0);const items=[];
+   if(this.scene.bg==='class')Object.values(SEATS).forEach(d=>items.push({y:d[1]+.5,f:()=>drawDesk(g,d[0],d[1])}));
+   Object.values(this.ch).forEach(o=>{if(!o.hidden)items.push({y:o.pose==='sit'&&o.desk!=null?o.desk:o.y,f:()=>drawChar(g,o.c,o.x,o.y,o,Math.floor(this.t/9),o.talk&&this.t%14<7)});});
+   items.sort((a,b)=>a.y-b.y).forEach(i=>i.f());
+   this.place();
+  }
+  requestAnimationFrame(this.loop);
+ }
+ head(o){return o.y-(o.pose==='sit'?21:24);}
+ place(){
+  for(const b of this.bubs){const o=this.ch[b.id];const ax=o.x<85?.14:o.x>235?.86:.5;
+   b.el.style.left=(o.x/PW*100)+'%';b.el.style.top=((this.head(o)-4)/PH*100)+'%';
+   const tf=`translate(${-ax*100}%,-100%)`;b.el.style.transform=tf;b.el.style.setProperty('--tf',tf);b.el.style.setProperty('--tl',(ax*100)+'%');}
+  for(const[id,el]of Object.entries(this.emos)){const o=this.ch[id];el.style.left=((o.x+6)/PW*100)+'%';el.style.top=((this.head(o)+2)/PH*100)+'%';}
+ }
+ sleep(ms,tok){return new Promise(r=>{if(this.fast)return r();const t0=Date.now();const chk=()=>{if(tok!==this.tok||this.fast||Date.now()-t0>=ms)r();else setTimeout(chk,60);};setTimeout(chk,60);});}
+ say(id,text,kind){
+  const o=this.ch[id];
+  this.bubs=this.bubs.filter(b=>{if(b.id===id){b.el.remove();return false;}return true;});
+  this.bubs=this.bubs.filter(b=>{b.age++;if(b.age>=3){b.el.remove();return false;}b.el.classList.toggle('old',b.age===1);b.el.classList.toggle('older',b.age===2);return true;});
+  const el=document.createElement('div');el.className='bub '+(kind==='think'?'think':'');
+  el.style.setProperty('--nc',shade(o.c.top,.62));el.innerHTML=`<b class="nm">${esc(o.c.name)}${kind==='think'?' ойлайды':''}</b>${esc(text)}`;
+  this.ov.appendChild(el);this.bubs.push({id,el,age:0});
+  Object.values(this.ch).forEach(c=>c.talk=false);if(kind!=='think')o.talk=true;if(this.capEl)this.capEl.classList.add('dim');this.place();
+ }
+ emo(id,sym,keep){
+  const o=this.ch[id];if(this.emos[id])this.emos[id].remove();
+  const el=document.createElement('div');el.className='emo';el.textContent=sym;this.ov.appendChild(el);this.emos[id]=el;
+  if(sym==='zzz')o.sleep=true;this.place();
+ }
+ cap(t){if(this.capEl)this.capEl.remove();const el=document.createElement('div');el.className='cap';el.textContent=t;this.ov.appendChild(el);this.capEl=el;}
+ chat(who,t){if(this.capEl)this.capEl.classList.add('dim');if(!this.chatEl){this.chatEl=document.createElement('div');this.chatEl.className='chat';this.ov.appendChild(this.chatEl);}
+  const m=document.createElement('div');m.innerHTML=`<b>${esc(who)}</b>${esc(t)}`;this.chatEl.appendChild(m);if(this.chatEl.children.length>4)this.chatEl.firstChild.remove();}
+ walk(id,x,y,tok){const o=this.ch[id];o.hidden=false;o.pose='stand';
+  return new Promise(res=>{let last=Date.now();const step=()=>{if(tok!==this.tok||!this.alive)return res();
+   const now=Date.now(),sp=Math.min(12,(now-last)*.085);last=now;
+   const dx=x-o.x,dy=y-o.y,d=Math.hypot(dx,dy);
+   if(this.fast||d<=Math.max(sp,.5)){o.x=x;o.y=y;o.walking=false;return res();}
+   o.x+=dx/d*sp;o.y+=dy/d*sp;o.walking=true;setTimeout(step,16);};step();});}
+ async exec(s,tok){
+  const[k,a,b,c]=s;
+  if(k==='cap'){this.cap(a);await this.sleep(dur(a),tok);}
+  else if(k==='say'||k==='think'){this.say(a,b,k);await this.sleep(dur(b),tok);}
+  else if(k==='chat'){this.chat(a,b);await this.sleep(dur(b),tok);}
+  else if(k==='emo'){this.emo(a,b);await this.sleep(c??700,tok);}
+  else if(k==='hand'){this.ch[a].hand=!!b;await this.sleep(250,tok);}
+  else if(k==='enter'){const o=this.ch[a];o.hidden=false;o.x=300;o.y=100;await this.walk(a,300,176,tok);await this.walk(a,b,176,tok);}
+  else if(k==='walk'){await this.walk(a,b,c,tok);}
+  else if(k==='wait'){await this.sleep(a,tok);}
+ }
+ async play(onDone,fast){
+  if(this.img){onDone&&onDone();return;}
+  const tok=++this.tok;this.fast=!!fast;this.reset();
+  for(const s of this.scene.steps){if(tok!==this.tok||!this.alive)return;await this.exec(s,tok);}
+  if(tok===this.tok&&this.alive){Object.values(this.ch).forEach(c=>c.talk=false);onDone&&onDone();}
+ }
+ skip(){this.fast=true;}
+}
+const castLegend=sc=>`<div class="castl">${Object.keys(sc.cast).map(id=>`<span class="cl"><img src="${avatar(id)}" alt=""><b>${CAST[id].name}</b><span class="mut">${CAST[id].role}</span></span>`).join('')}</div>`;
+
+/* ======================= БАСТАПҚЫ БЕТ ======================= */
+const params=new URLSearchParams(location.search);
+if(params.get('room'))player(params.get('room').toUpperCase());
+else if(params.has('play'))player('');
+else landing();
+
+function landing(){
+ document.body.className='';
+ app.innerHTML=`${band(50)}<div class="landing"><div class="box">
+  <svg width="90" height="45" class="orn"><use href="#orn"/></svg>
+  <h1>Тұлғадан — <em>ұжымға</em></h1>
+  <p class="mut" style="font-size:20px">Пиксель-комикс ойыны · 1-раунд «Мен кіммін?» · 2-раунд «Ұжым сынағы» · 15 минут</p>
+  <div class="roles"><button class="btn" id="asHost">Мен — оқытушы (тақта)</button><button class="ghost btn" id="asPlay">Мен — студент</button></div>
+  ${location.protocol==='file:'?'<p class="err">Бет компьютерден ашылды. Студенттер телефонмен қосылуы үшін оны интернетке жариялаңыз (мысалы, GitHub Pages).</p>':''}
+ </div></div>`;
+ $('#asHost').onclick=host;$('#asPlay').onclick=()=>player('');
+}
+
+/* ======================= ТАҚТА (ОҚЫТУШЫ) ======================= */
+function host(){
+ document.body.className='host';
+ if(typeof Peer==='undefined'){app.innerHTML='<div class="landing"><p class="err">PeerJS кітапханасы жүктелмеді. Интернетті тексеріп, бетті жаңартыңыз.</p></div>';return;}
+ const S={phase:'lobby',players:{},teams:[],si:0,show:false,reveal:false,deadline:0,rev:[],log:[],played:false};
+ let peer=null,code='',ready=false,net='',botN=0,stage=null,openOpt=-1;
+ const IMG={};
+ const tryImg=id=>new Promise(res=>{const exts=['png','jpg','jpeg','webp'];const t=i=>{if(i>=exts.length)return res(null);const im=new Image();im.onload=()=>res(im.src);im.onerror=()=>t(i+1);im.src='comics/'+id+'.'+exts[i];};t(0);});
+ if(location.protocol!=='file:'){R1.forEach((_,i)=>tryImg('r1-'+(i+1)).then(s=>{if(s)IMG['r1-'+(i+1)]=s;}));R2.forEach((_,i)=>tryImg('r2-'+(i+1)).then(s=>{if(s)IMG['r2-'+(i+1)]=s;}));}
+ const mode={};
+ const P=()=>Object.values(S.players);
+ const joinUrl=()=>location.origin+location.pathname+'?room='+code;
+ const log=t=>{S.log.unshift(t);S.log=S.log.slice(0,5);const f=$('#feed');if(f)f.innerHTML=S.log.map(x=>`<div>${esc(x)}</div>`).join('');};
+ function newPeer(){
+  const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789';code=Array.from({length:4},()=>A[Math.floor(Math.random()*A.length)]).join('');
+  ready=false;peer=new Peer(PREFIX+code,ICE);
+  peer.on('open',()=>{ready=true;net='';render();});
+  peer.on('connection',c=>{c.on('data',d=>onMsg(c,d));c.on('close',()=>{P().forEach(p=>{if(p.conn===c){p.conn=null;p.on=false;}});live();});});
+  peer.on('error',e=>{if(e.type==='unavailable-id'){peer.destroy();newPeer();}else if(e.type!=='peer-unavailable'){net='Байланыс қатесі: '+e.type;if(S.phase==='lobby')render();}});
+  peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}});
+  render();
+ }
+ function send(p){if(p.conn&&p.conn.open){try{p.conn.send({t:'state',v:view(p)})}catch(e){}}}
+ const syncAll=()=>P().forEach(send);
+ const syncTeam=ti=>{if(ti!=null&&S.teams[ti])S.teams[ti].m.forEach(id=>send(S.players[id]));};
+ function onMsg(c,d){
+  if(!d||typeof d!=='object')return;
+  if(d.t==='join'){
+   const id=String(d.pid||'').slice(0,40);if(!id)return;
+   const nm=String(d.name||'').trim().slice(0,22)||'Қонақ';
+   let p=S.players[id];
+   if(!p){p=S.players[id]={pid:id,name:nm,a1:{},votes:{},res:null,team:null,refl:null};log(nm+' ойынға қосылды');if(S.teams.length)late(p);}
+   p.name=nm;p.conn=c;p.on=true;c.pid=id;send(p);
+   if(S.phase==='teams')render();else live();return;
+  }
+  const p=S.players[c.pid];if(p)apply(p,d);
+ }
+ function apply(p,d){
+  if(d.t==='a1'&&S.phase==='r1'&&d.si===S.si&&Number.isInteger(d.k)&&d.k>=0&&d.k<4){
+   const first=p.a1[S.si]==null;p.a1[S.si]=d.k;if(first)log(p.name+' таңдау жасады');send(p);live();
+  }else if(d.t==='vote'&&S.phase==='r2vote'&&d.q===S.si&&Number.isInteger(d.o)&&d.o>=0&&d.o<4){
+   const prev=p.votes[S.si];
+   if(prev&&prev.o!==d.o&&p.team!=null)log(S.teams[p.team].name+': біреу пікірін өзгертті');
+   p.votes[S.si]={o:d.o,ts:Date.now()};
+   if(p.team!=null)syncTeam(p.team);else send(p);live();
+  }else if(d.t==='refl'&&S.phase==='refl'&&Number.isInteger(d.o)&&d.o>=0&&d.o<5){p.refl=d.o;send(p);live();}
+ }
+ function calcRes(p){
+  const picks=Object.entries(p.a1).map(([si,k])=>R1[si].o[k][1]);if(!picks.length)return null;
+  let e=0,n=0;const cnt={S:0,C:0,P:0,M:0};picks.forEach(k=>{e+=D[k][0];n+=D[k][1];cnt[k]++;});
+  return{e,n,type:typeOf(e,n,picks),cnt,total:picks.length};
+ }
+ function late(p){let mi=0;S.teams.forEach((t,i)=>{if(t.m.length<S.teams[mi].m.length)mi=i;});S.teams[mi].m.push(p.pid);p.team=mi;}
+ function tally(ti,qi){
+  const c=[0,0,0,0];let n=0;S.teams[ti].m.forEach(id=>{const v=S.players[id].votes[qi];if(v){c[v.o]++;n++;}});
+  if(!n)return{ans:null,n,c};const mx=Math.max(...c);
+  if(c.filter(x=>x===mx).length>1)return{ans:'tie',n,c};
+  return{ans:c.indexOf(mx),n,c,cons:n>=2&&mx===n};
+ }
+ function view(p){
+  const v={phase:S.phase,name:p.name,si:S.si};
+  const t=p.team!=null?S.teams[p.team]:null;
+  if(t)v.team={name:t.name,c:t.c,score:t.score,m:t.m.map(id=>S.players[id].name)};
+  if(S.phase==='r1')v.my=p.a1[S.si]??null;
+  if(S.phase==='r1end'||S.phase==='teams'||S.phase==='end')v.res=p.res;
+  if(S.phase==='r2vote'||S.phase==='r2rev'){
+   v.rem=Math.max(0,S.deadline-Date.now());v.my=p.votes[S.si]?p.votes[S.si].o:null;
+   if(t){v.tv=t.m.map(id=>{const m=S.players[id],x=m.votes[S.si];return[m.name,x?x.o:null];});v.tt=tally(p.team,S.si);}
+  }
+  if(S.phase==='r2rev'&&t)v.rv=S.rev[p.team];
+  if(S.phase==='refl')v.my=p.refl;
+  if(S.phase==='end'&&t){const order=[...S.teams].sort((a,b)=>b.score-a.score);v.rank=order.indexOf(t)+1;}
+  return v;
+ }
+ /* ---- фазалар ---- */
+ function go(ph,extra){Object.assign(S,{phase:ph,show:false,reveal:false,played:false},extra||{});openOpt=-1;render();syncAll();bots(ph);}
+ function startR1(i){go('r1',{si:i});}
+ function endR1(){P().forEach(p=>{p.res=calcRes(p);p.xy=p.res?pos(p.res.e,p.res.n,true):null;});go('r1end');}
+ function makeTeams(){
+  const ps=P();const k=ps.length<4?Math.max(1,Math.min(2,ps.length)):Math.max(2,Math.min(5,Math.round(ps.length/5)));
+  const rank={S:0,C:1,P:2,M:3};
+  ps.sort((a,b)=>(a.res?rank[a.res.type]:4)-(b.res?rank[b.res.type]:4)||Math.random()-.5);
+  S.teams=TEAMS.slice(0,k).map(t=>({...t,m:[],score:0}));
+  ps.forEach((p,i)=>{p.team=i%k;S.teams[i%k].m.push(p.pid);});
+  S.log=[];go('teams');
+ }
+ function startPlay(i){go('r2play',{si:i});}
+ function startVote(){S.deadline=Date.now()+QTIME*1000;go('r2vote');}
+ function reveal(){
+  if(S.phase!=='r2vote')return;
+  const sc=R2[S.si];
+  S.rev=S.teams.map((t,ti)=>{
+   const r=tally(ti,S.si);let pts=0,note='';
+   if(r.ans===null)note='Дауыс берілмеді';
+   else if(r.ans==='tie')note='Тең дауыс — келісімге келе алмады';
+   else{const s=sc.o[r.ans].s;pts=s;
+    if(r.cons&&s>=70){pts+=20;note='Бірауыздан әрі сындарлы: +20 бірлік бонусы';}
+    else if(r.cons&&s<=25)note='Бірауыздан, бірақ әлсіз шешім — «топтық ойлау» (groupthink)';
+    else if(r.cons)note='Бірауызды шешім';else note='Көпшілік дауыспен';}
+   t.score+=pts;return{ans:r.ans,pts,note};
+  });
+  const best=sc.o.reduce((b,o,i)=>o.s>sc.o[b].s?i:b,0);openOpt=best;
+  Object.assign(S,{phase:'r2rev'});render();syncAll();
+ }
+ function nextR2(){if(S.si<R2.length-1)startPlay(S.si+1);else go('refl');}
+ /* ---- сынақ боттары ---- */
+ const BN=['Айгерім','Данияр','Әсел','Нұрлан','Мадина','Ерасыл','Аружан','Тимур','Жансая','Бекзат','Дильназ','Алихан'];
+ function addBots(n){for(let i=0;i<n;i++){const id='bot'+(++botN);S.players[id]={pid:id,name:BN[(botN-1)%BN.length]+(botN>BN.length?' '+botN:''),a1:{},votes:{},res:null,team:null,refl:null,bot:true,on:true};if(S.teams.length)late(S.players[id]);}
+  log(n+' сынақ боты қосылды');bots(S.phase);S.phase==='teams'?render():live();}
+ function bots(ph){
+  P().filter(p=>p.bot).forEach(p=>{
+   if(ph==='r1'){const si=S.si;setTimeout(()=>{if(S.si===si&&S.phase==='r1')apply(p,{t:'a1',si,k:Math.floor(Math.random()*4)});},2000+Math.random()*12000);}
+   if(ph==='r2vote'){const si=S.si,o=R2[si].o;const pick=()=>{if(Math.random()<.45)return o.reduce((b,x,i)=>x.s>o[b].s?i:b,0);return Math.floor(Math.random()*4);};
+    setTimeout(()=>{if(S.si===si)apply(p,{t:'vote',q:si,o:pick()});},3000+Math.random()*20000);
+    if(Math.random()<.4)setTimeout(()=>{if(S.si===si)apply(p,{t:'vote',q:si,o:pick()});},25000+Math.random()*20000);}
+   if(ph==='refl')setTimeout(()=>apply(p,{t:'refl',o:Math.floor(Math.random()*4)}),1000+Math.random()*6000);
+  });
+ }
+ /* ---- көрініс ---- */
+ const PH={lobby:'Күту залы',r1:'1-раунд · Мен кіммін?',r1end:'1-раунд · Топтың портреті',teams:'Командалар',r2play:'2-раунд · Ұжым сынағы',r2vote:'2-раунд · Командалық шешім',r2rev:'2-раунд · Сараптама',refl:'Рефлексия',end:'Қорытынды'};
+ function frame(main,cls,btns){
+  if(stage){stage.destroy();stage=null;}
+  app.innerHTML=`${band(70)}<div class="top"><svg width="40" height="20" class="orn"><use href="#orn"/></svg><span class="ttl">Тұлғадан — ұжымға</span>${code?`<span class="code">${code}</span>`:''}<span class="ph">${PH[S.phase]}</span></div>
+  <div class="main ${cls}">${main}</div><div class="bar">${btns}</div>`;
+ }
+ function mountStage(sc,key,autoplay){
+  const box=$('#stage');const img=IMG[key];if(mode[key]==null)mode[key]=img?'img':'pix';
+  stage=new Stage(box,sc,mode[key]==='img'?img:null);
+  const done=()=>{S.played=true;const b=$('#go');if(b&&S.phase==='r2play')b.classList.add('pulse');};
+  stage.play(done,!autoplay);
+  const tg=$('#tog');if(tg){tg.hidden=!img;tg.onclick=()=>{mode[key]=mode[key]==='img'?'pix':'img';mountStage(sc,key,true);};}
+  const rp=$('#rep');if(rp)rp.onclick=()=>{if(stage)stage.play(done);};
+  const sk=$('#skip');if(sk)sk.onclick=()=>{if(stage)stage.skip();};
+ }
+ const stageCtl=`<button class="ghost btn" id="rep">Қайталау</button><button class="ghost btn" id="skip">Өткізу</button><button class="ghost btn" id="tog" hidden>Комикс / Пиксель</button>`;
+ const teamSide=()=>`<div id="tst" style="display:grid;gap:8px"></div>`;
+ function render(){
+  const ph=S.phase;
+  if(ph==='lobby'){
+   frame(`<div class="hero"><div class="kick">Практикалық сабақ · 21–22 тақырып</div><h1>Тұлғадан —<br><em>ұжымға</em></h1>
+    <p>1-раунд: әркім пиксель-оқиғаларда өзін қалай ұстайтынын таңдайды — соңында жеке талдау. 2-раунд: командалар топтың шиеленісті жағдайларын шешеді.</p>
+    <div class="count">Қатысушылар: <b id="pc">0</b></div><div class="cloud" id="pl"></div></div>
+    <div class="qrcard">${ready?`<div id="qr"></div><div class="big">${code}</div><small>${esc(joinUrl())}</small>`:`<div id="qr" style="color:#2a5a60">Бөлме ашылуда…</div>`}${net?`<p class="err">${esc(net)}</p>`:''}</div>`,'lobby',
+    `<button class="ghost btn" id="bb">+5 сынақ боты</button><span class="sp"></span><span class="mut">Телефон камерасымен QR-кодты сканерлеңіз</span><button class="btn" id="go">1-раундты бастау</button>`);
+   if(ready&&typeof QRCode!=='undefined')new QRCode($('#qr'),{text:joinUrl(),width:340,height:340,colorDark:'#0c3a40',colorLight:'#f6f2ea',correctLevel:QRCode.CorrectLevel.M});
+   $('#bb').onclick=()=>addBots(5);$('#go').onclick=()=>startR1(0);
+  }else if(ph==='r1'){
+   const sc=R1[S.si];
+   frame(`<div><div class="stagebox" id="stage"></div>${castLegend(sc)}</div>
+    <div class="side"><div class="kick">Оқиға ${S.si+1} / ${R1.length} · ${esc(sc.title)}</div><h2>${esc(sc.q)}</h2><p class="mut" style="margin:0;font-size:15px">Әркім телефонда жеке, шын таңдайды. Дұрыс не бұрыс жоқ.</p>
+    <div id="r1o" style="display:grid;gap:8px"></div><div class="count" style="margin-top:4px">Жауап берді: <b id="ac">0</b></div><div class="feed" id="feed"></div></div>`,'sc',
+    `${stageCtl}<span class="sp"></span><button class="ghost btn" id="shw">Топтың таңдауын көрсету</button><button class="ghost btn" id="rvl">Темпераментті ашу</button><button class="btn" id="go">${S.si<R1.length-1?'Келесі оқиға':'Жеке талдауға өту'}</button>`);
+   mountStage(sc,'r1-'+(S.si+1),true);
+   $('#shw').onclick=()=>{S.show=!S.show;live();};$('#rvl').onclick=()=>{S.reveal=!S.reveal;S.show=true;live();};
+   $('#go').onclick=()=>S.si<R1.length-1?startR1(S.si+1):endR1();
+  }else if(ph==='r1end'){
+   frame(`<div class="circ"><svg viewBox="0 0 600 600">${quads()}
+     <text x="585" y="292" text-anchor="end" fill="#f6f2eacc" font-size="17">Экстраверт →</text><text x="15" y="292" fill="#f6f2eacc" font-size="17">← Интроверт</text>
+     <text x="308" y="22" fill="#f6f2eacc" font-size="17">Эмоционалды тұрақсыз</text><text x="308" y="592" fill="#f6f2eacc" font-size="17">Эмоционалды тұрақты</text><g id="dots"></g></svg></div>
+    <div><div class="kick">Г. Айзенк шеңбері · топтың тірі портреті</div><h2 style="font-size:clamp(28px,2.8vw,46px);margin-bottom:12px">Біз кімбіз?</h2>
+    <p class="mut" style="font-size:18px">Әр нүкте — бір студенттің 4 оқиғадағы таңдауы. Жеке талдау әркімнің телефонында.</p><div class="legend" id="lg"></div></div>`,'r1end',
+    `<span class="mut">Талқылау: «Талдау сізге сәйкес келді ме? Қай оқиғада өзіңізді басқаша көрсеттіңіз?»</span><span class="sp"></span><button class="btn" id="go">Командаларға бөлу</button>`);
+   $('#go').onclick=makeTeams;
+  }else if(ph==='teams'){
+   frame(S.teams.map((t,i)=>`<div class="tcard" style="--tc:${t.c};animation-delay:${i*.12}s"><h3><span class="emb">${esc(t.name[0])}</span>${esc(t.name)}</h3>${t.m.map(id=>{const p=S.players[id];return `<div class="mem"><i style="background:${p.res?TYPES[p.res.type].col:'#567'}"></i>${esc(p.name)}<span class="mut" style="margin-left:auto;font-size:14px">${p.res?TYPES[p.res.type].name:''}</span></div>`;}).join('')}</div>`).join(''),'teams',
+    `<button class="ghost btn" id="bb">+5 сынақ боты</button><span class="mut" style="font-size:16px">Командалар әр темпераменттен аралас құрылды — әртүрлілік ұжымның ресурсы. Командаңызбен бірге отырыңыз.</span><span class="sp"></span><button class="btn" id="go">2-раундты бастау</button>`);
+   $('#bb').onclick=()=>addBots(5);$('#go').onclick=()=>startPlay(0);
+  }else if(ph==='r2play'){
+   const sc=R2[S.si];
+   frame(`<div><div class="stagebox" id="stage"></div>${castLegend(sc)}</div>
+    <div class="side"><div class="kick">Сахна ${S.si+1} / ${R2.length} · ${esc(sc.title)}</div><h2>Тақтаға қараңыз</h2>
+    <p class="mut" style="font-size:16px;margin:0">Кім не айтты? Кім үндемеді? Кім ұйықтап отыр? Әр детальді байқаңыз — сосын командамен шешім қабылдайсыздар.</p>
+    ${teamSide()}<div class="feed" id="feed"></div></div>`,'sc',
+    `${stageCtl}<span class="sp"></span><button class="btn" id="go">Командалық шешімге өту</button>`);
+   mountStage(sc,'r2-'+(S.si+1),true);
+   $('#go').onclick=startVote;
+  }else if(ph==='r2vote'||ph==='r2rev'){
+   const sc=R2[S.si],rv=ph==='r2rev';
+   frame(`<div><div class="stagebox" id="stage"></div>${rv?`<div class="pcard" style="margin-top:12px"><b style="color:var(--S)">Кезең:</b> ${esc(sc.stage)}</div>`:castLegend(sc)}</div>
+    <div class="side"><div class="kick">Сахна ${S.si+1} · ${rv?'Сарапшы бағасы — нұсқаны басып, түсіндірмесін ашыңыз':'Командалар телефонда дауыс береді'}</div><h2>${esc(sc.q)}</h2>
+    ${rv?'':`<div class="timer"><span id="tnum">${QTIME}</span><div class="tb"><div id="tbar" style="width:100%"></div></div></div>`}
+    <div id="r2o" style="display:grid;gap:8px"></div>${teamSide()}<div class="feed" id="feed"></div></div>`,'sc wide',
+    rv?`<span class="mut">Талқылау: «Сіздің команда неге осыны таңдады? Басқа команданы сендіріңіз!»</span><span class="sp"></span><button class="btn" id="go">${S.si<R2.length-1?'Келесі сахна':'Рефлексияға өту'}</button>`
+      :`${stageCtl}<span class="mut">Тең дауыс = 0 ұпай · Бірауызды сындарлы шешім = +20</span><span class="sp"></span><button class="btn" id="go">Сараптаманы ашу</button>`);
+   mountStage(sc,'r2-'+(S.si+1),false);
+   $('#go').onclick=rv?nextR2:reveal;
+  }else if(ph==='refl'){
+   frame(`<div><div class="kick">Соңғы сұрақ — әркім жеке, анонимді жауап береді</div><h2 style="font-size:clamp(28px,3vw,48px);margin-bottom:24px">Ал СІЗДІҢ академиялық тобыңыз қазір қай кезеңде?</h2><div class="rbars" id="rb"></div><p class="count">Жауап берді: <b id="rc">0</b></p></div>`,'',
+    `<span class="mut">Талқылау: келесі кезеңге өту үшін топқа не жетіспейді?</span><span class="sp"></span><button class="btn" id="go">Қорытынды</button>`);
+   $('#go').onclick=()=>go('end');
+  }else if(ph==='end'){
+   const order=[...S.teams].sort((a,b)=>b.score-a.score);const mx=Math.max(1,...order.map(t=>t.score));
+   const cnt={S:0,C:0,P:0,M:0};P().forEach(p=>{if(p.res)cnt[p.res.type]++;});
+   frame(`<div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:32px;align-items:end">
+     <div class="podium">${order.map((t,i)=>`<div class="pod" style="--tc:${t.c}"><div class="blk" style="height:${80+220*t.score/mx}px;animation-delay:${(order.length-i)*.2}s">${t.score}</div><h3>${i+1}. ${esc(t.name)}</h3><span class="mut">${t.m.length} адам</span></div>`).join('')}</div>
+     <div><div class="kick">Топтың портреті</div><div class="legend">${Object.keys(TYPES).map(k=>`<div class="lg"><i style="background:${TYPES[k].col}"></i><span>${TYPES[k].name}<small>${TYPES[k].nick}</small></span><b>${cnt[k]}</b></div>`).join('')}</div></div></div>
+     <p class="quote">Ұжым — тұлғалардың жай жиынтығы емес. Әртүрлі темпераменттер ортақ мақсатқа бағытталып, тартыстан қорықпай, нормаларды бірге жасағанда ғана топ ұжымға айналады.</p>`,'',
+    `<span class="sp"></span><button class="ghost btn" id="go">Жаңа ойын</button>`);
+   $('#go').onclick=()=>location.reload();
+  }
+  live();
+ }
+ function live(){
+  const ph=S.phase,ps=P();
+  const f=$('#feed');if(f)f.innerHTML=S.log.map(x=>`<div>${esc(x)}</div>`).join('');
+  if(ph==='lobby'){const pl=$('#pl');if(pl)pl.innerHTML=ps.map(p=>`<span class="chip ${p.on?'':'off'}"><i></i>${esc(p.name)}</span>`).join('');const pc=$('#pc');if(pc)pc.textContent=ps.length;}
+  if(ph==='r1'){
+   const sc=R1[S.si],c=[0,0,0,0];let n=0;ps.forEach(p=>{const k=p.a1[S.si];if(k!=null){c[k]++;n++;}});
+   const el=$('#r1o');if(el)el.innerHTML=ORD[S.si].map((k,li)=>{const pc=n?Math.round(c[k]/n*100):0;const T=TYPES[sc.o[k][1]];
+     return `<div class="opt-b"><div class="fill" style="width:${S.show?pc:0}%;${S.reveal?`background:${T.col}33`:''}"></div><div class="row"><span class="L">${LET[li]}</span><span>${esc(sc.o[k][0])}${S.reveal?`<br><span class="tp" style="background:${T.col}">${T.name}</span>`:''}</span><span class="pc">${S.show?pc+'%':''}</span></div></div>`;}).join('');
+   const ac=$('#ac');if(ac)ac.textContent=n+' / '+ps.length;
+   const sb=$('#shw');if(sb)sb.textContent=S.show?'Таңдауды жасыру':'Топтың таңдауын көрсету';
+  }
+  if(ph==='r1end'){
+   const g=$('#dots');if(g&&!g.childNodes.length){ps.filter(p=>p.res).forEach((p,i)=>{const[x,y]=p.xy;const el=document.createElementNS('http://www.w3.org/2000/svg','g');
+     el.innerHTML=`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><g class="dot" style="animation-delay:${i*.12}s"><circle r="15" fill="${TYPES[p.res.type].col}" stroke="#0c3a40" stroke-width="3"/><text y="5" text-anchor="middle" font-size="14" font-weight="700" fill="#0c3a40" font-family="Golos Text">${esc(p.name[0]||'?')}</text></g></g>`;g.appendChild(el);});}
+   const cnt={S:0,C:0,P:0,M:0};ps.forEach(p=>{if(p.res)cnt[p.res.type]++;});
+   const lg=$('#lg');if(lg)lg.innerHTML=Object.keys(TYPES).map(k=>`<div class="lg"><i style="background:${TYPES[k].col}"></i><span>${TYPES[k].name}<small>${TYPES[k].nick}</small></span><b>${cnt[k]}</b></div>`).join('');
+  }
+  if(ph==='r2vote'||ph==='r2rev'||ph==='r2play'){
+   const el=$('#tst');if(el)el.innerHTML=S.teams.map((t,ti)=>{
+    let st,cl='';
+    if(ph==='r2rev'){const r=S.rev[ti];st=(r.ans!=null&&r.ans!=='tie'?LET[r.ans]+' нұсқасы · ':'')+(r.pts?'+'+r.pts+' · ':'')+r.note;cl=r.pts>=70?'ok':(r.ans==='tie'?'tie':'');}
+    else if(ph==='r2play'){st=t.m.length+' адам';}
+    else{const r=tally(ti,S.si);st=r.n===0?'Талқылауда…':r.ans==='tie'?'Тең дауыс! Келісіңдер':r.cons?'Бірауызды пікір':'Пікір бөлінді';cl=r.ans==='tie'?'tie':r.cons?'ok':'';st=r.n+'/'+t.m.length+' дауыс · '+st;}
+    return `<div class="tst" style="--tc:${t.c}"><span class="scv">${t.score}</span><b>${esc(t.name)}</b><div class="st ${cl}">${esc(st)}</div></div>`;}).join('');
+  }
+  if(ph==='r2vote'||ph==='r2rev'){
+   const sc=R2[S.si],rv=ph==='r2rev',el=$('#r2o');
+   if(el){el.innerHTML=sc.o.map((o,i)=>{
+     const tags=rv?S.teams.map((t,ti)=>S.rev[ti]&&S.rev[ti].ans===i?`<span class="tag" style="--tc:${t.c}">${esc(t.name)}</span>`:'').join(''):'';
+     const best=rv&&o.s===Math.max(...sc.o.map(x=>x.s));
+     return `<div class="opt-b ${rv?'click':''} ${best?'best':''} ${rv&&openOpt===i?'open':''}" data-i="${i}"><div class="row"><span class="L">${LET[i]}</span><span>${esc(o.t)}${rv?`<div class="score">${Array.from({length:10},(_,k)=>`<i class="${k<Math.round(o.s/10)?'on':''}"></i>`).join('')}</div>`:''}</span><span class="pc">${rv?o.s:''}</span></div>${tags?`<div class="tags">${tags}</div>`:''}<div class="why">${esc(o.w)}</div></div>`;}).join('');
+    if(rv)el.querySelectorAll('.opt-b').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;openOpt=openOpt===i?-1:i;live();});}
+  }
+  if(ph==='refl'){
+   const c=[0,0,0,0,0];ps.forEach(p=>{if(p.refl!=null)c[p.refl]++;});const mx=Math.max(1,...c);
+   const rb=$('#rb');if(rb)rb.innerHTML=STAGES.map((s,i)=>`<div class="rb"><span>${s.name}</span><div class="tr"><div style="width:${c[i]/mx*100}%"></div></div><b>${c[i]}</b></div>`).join('');
+   const rc=$('#rc');if(rc)rc.textContent=c.reduce((a,b)=>a+b,0)+' / '+ps.length;
+  }
+ }
+ setInterval(()=>{
+  if(S.phase!=='r2vote')return;
+  const r=Math.max(0,S.deadline-Date.now());
+  const n=$('#tnum'),b=$('#tbar');if(n)n.textContent=Math.ceil(r/1000);if(b)b.style.width=(r/(QTIME*1000)*100)+'%';
+  if(r<=0)reveal();
+ },250);
+ newPeer();
+}
+
+/* ======================= СТУДЕНТ ТЕЛЕФОНЫ ======================= */
+function player(code0){
+ document.body.className='phone';
+ let code=code0,peer=null,conn=null,V=null,retrying=false,dead=false;
+ let pid=ls.get('tuj-pid');if(!pid){pid='p'+Math.random().toString(36).slice(2,10);ls.set('tuj-pid',pid);}
+ let name=ls.get('tuj-name')||'';
+ const send=d=>{if(conn&&conn.open){try{conn.send(d)}catch(e){}}};
+ const head=()=>V&&V.team?`<div class="who"><span class="emb" style="background:${V.team.c}">${esc(V.team.name[0])}</span>${esc(V.name)} · ${esc(V.team.name)} командасы · ${V.team.score} ұпай</div>`:`<div class="who"><svg width="30" height="15" class="orn"><use href="#orn"/></svg>${esc(V?V.name:name)}</div>`;
+ const look=t=>`<div class="look">${eyeSvg}<span>${t}</span></div>`;
+ function form(err){
+  app.innerHTML=`<div style="padding-top:7vh"><svg width="70" height="35" class="orn"><use href="#orn"/></svg><h1 style="margin:12px 0">Тұлғадан — ұжымға</h1>
+   <div class="pcard" style="display:grid;gap:12px">${code?`<div class="mut">Бөлме: <b style="color:var(--ink)">${esc(code)}</b></div>`:'<label>Бөлме коды<input id="cd" maxlength="4" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2em;margin-top:6px"></label>'}
+   <label>Атыңыз<input id="nm" maxlength="22" value="${esc(name)}" autocomplete="given-name" style="margin-top:6px"></label>
+   ${err?`<div class="err">${esc(err)}</div>`:''}<button class="btn" id="go">Кіру</button></div></div>`;
+  $('#go').onclick=()=>{const n=$('#nm').value.trim();const c=code||($('#cd')?$('#cd').value.trim().toUpperCase():'');if(!n||c.length!==4){form('Код (4 таңба) мен атыңызды енгізіңіз');return;}name=n;code=c;ls.set('tuj-name',n);connect();};
+ }
+ function wait(t,sub){app.innerHTML=`${head()}<div class="pcard" style="text-align:center;padding:36px 20px"><svg width="80" height="40" class="orn"><use href="#orn"/></svg><h2 style="margin:14px 0 8px">${t}</h2><p class="mut">${sub||''}</p></div>`;}
+ function connect(){
+  if(typeof Peer==='undefined'){form('Кітапхана жүктелмеді. Интернетті тексеріңіз.');return;}
+  wait('Қосылуда…','Бір сәт');
+  if(peer)try{peer.destroy()}catch(e){}
+  peer=new Peer(ICE);
+  peer.on('open',openConn);
+  peer.on('error',e=>{if(e.type==='peer-unavailable'&&!V){dead=true;form('Бөлме табылмады. Кодты тексеріңіз.');}else retry();});
+  peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}});
+ }
+ function openConn(){dead=false;conn=peer.connect(PREFIX+code,{reliable:true});conn.on('open',()=>send({t:'join',pid,name}));conn.on('data',d=>{if(d&&d.t==='state')onState(d.v);});conn.on('close',retry);}
+ function retry(){if(retrying||dead)return;retrying=true;if(V)wait('Байланыс үзілді','Қайта қосылуда…');setTimeout(()=>{retrying=false;if(peer&&!peer.destroyed){if(peer.disconnected){try{peer.reconnect()}catch(e){}}openConn();}else connect();},2000);}
+ function onState(v){V=v;draw();}
+ function draw(){
+  const v=V;
+  if(v.phase==='lobby')return wait('Сіз ойындасыз!','Оқытушы бастағанша күте тұрыңыз.');
+  if(v.phase==='r1')return r1();
+  if(v.phase==='r1end'||(v.phase==='teams'&&!v.team))return result();
+  if(v.phase==='teams')return team();
+  if(v.phase==='r2play')return app.innerHTML=`${head()}${look('Тақтаға қараңыз: оқиға жүріп жатыр. Кім не айтады, кім үндемейді — бәрін байқаңыз.')}<div class="pcard"><span class="mut">Сахна ${v.si+1} / ${R2.length}</span><h2 style="margin-top:6px">${esc(R2[v.si].title)}</h2><p class="mut">Көріп болған соң командаңызбен бірге шешім қабылдайсыздар. Талқылауды қазірден бастай беріңіз!</p></div>`;
+  if(v.phase==='r2vote')return vote();
+  if(v.phase==='r2rev')return rev();
+  if(v.phase==='refl')return refl();
+  if(v.phase==='end')return end();
+ }
+ function r1(){
+  const sc=R1[V.si];
+  app.innerHTML=`${head()}${look('Тақтадағы оқиғаны қараңыз')}<div class="kick" style="margin-top:14px">Оқиға ${V.si+1} / ${R1.length} · ${esc(sc.title)}</div><h2>${esc(sc.q)}</h2>
+   <div class="opts">${ORD[V.si].map((k,li)=>`<button class="opt ${V.my===k?'sel':''}" data-k="${k}"><span class="L">${LET[li]}</span><span>${esc(sc.o[k][0])}</span></button>`).join('')}</div>
+   <p class="mut" style="font-size:14px">${V.my!=null?'Жауабыңыз қабылданды. Келесі оқиғаға дейін өзгертуге болады.':'Дұрыс не бұрыс жауап жоқ — шын өзіңізді таңдаңыз.'}</p>`;
+  app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>send({t:'a1',si:V.si,k:+b.dataset.k}));
+ }
+ function result(){
+  const r=V.res;if(!r)return wait('Талдау дайын емес','Сіз 1-раундтың оқиғаларына жауап бермедіңіз. 2-раунд жақында басталады.');
+  const T=TYPES[r.type];const[x,y]=pos(r.e,r.n,false);
+  app.innerHTML=`${head()}<div class="res" style="background:${T.col}">
+   <span class="lab">4 оқиғадағы таңдауыңыз бойынша</span><h1>${T.name}</h1><div class="nick">${T.nick}</div>
+   <svg viewBox="0 0 600 600" style="width:120px;float:right;margin:0 0 8px 10px"><circle cx="300" cy="300" r="285" fill="#12323a"/>${quads()}<circle cx="${x}" cy="${y}" r="28" fill="#12323a"/><circle cx="${x}" cy="${y}" r="14" fill="${T.col}"/></svg>
+   <p>${T.d}</p><p><span class="lab">Ұжымдағы күшіңіз</span>${T.plus}</p><p><span class="lab">Даму аймағы</span>${T.grow}</p>
+   <div class="picks"><span class="lab">Сіздің таңдауларыңыз</span>${Object.keys(TYPES).map(k=>`<div><span>${TYPES[k].name}</span><span class="t"><i style="width:${r.cnt[k]/r.total*100}%"></i></span><b>${r.cnt[k]}</b></div>`).join('')}</div></div>
+   <p class="mut" style="font-size:14px;margin-top:14px">Бұл — ойын нұсқасы, диагноз емес. Темперамент — тұлғаның табиғи негізі ғана; мінез, қабілет пен бағыттылық әрекет пен қарым-қатынаста қалыптасады. Таңдауларыңыз әртүрлі болса — бұл қалыпты: тұлға жағдайға қарай әртүрлі қырын көрсетеді.</p>`;
+ }
+ function team(){
+  const t=V.team;
+  app.innerHTML=`${head()}<div class="pcard" style="border-top:8px solid ${t.c}"><span class="mut">Сіздің командаңыз</span>
+   <h1 style="display:flex;gap:12px;align-items:center;margin:8px 0 12px"><span class="emb" style="background:${t.c}">${esc(t.name[0])}</span>${esc(t.name)}</h1>
+   <div class="mates">${t.m.map(n=>`<div><span>${esc(n)}</span></div>`).join('')}</div></div>
+   <p class="mut">Командаңызды тауып, бірге отырыңыз. 2-раундта ортақ шешім қабылдайсыздар: тең дауыс — 0 ұпай.</p>
+   <button class="ghost btn" id="my" style="width:100%">Жеке талдауымды қайта қарау</button>`;
+  $('#my').onclick=result;
+ }
+ let tick=null;
+ function timerBar(){clearInterval(tick);const end=Date.now()+(V.rem||0),tot=QTIME*1000;
+  tick=setInterval(()=>{const b=$('#tb');if(!b){clearInterval(tick);return;}const r=Math.max(0,end-Date.now());b.style.width=(r/tot*100)+'%';const s=$('#ts');if(s)s.textContent=Math.ceil(r/1000)+' с';},250);}
+ function vote(){
+  const sc=R2[V.si],tt=V.tt||{};
+  const status=!tt.n?'Әзірге ешкім дауыс бермеді':tt.ans==='tie'?'Тең дауыс! Талқылап, бір шешімге келіңдер':tt.cons?'Командада бірауызды пікір':'Пікір бөлінді — дәлелдеріңді айт!';
+  app.innerHTML=`${head()}<div class="tbar"><div id="tb" style="width:100%"></div></div><div class="kick" style="margin-top:10px">Сахна ${V.si+1} · ${esc(sc.title)} · <span id="ts"></span></div>
+   <h2>${esc(sc.q)}</h2>
+   <div class="opts">${sc.o.map((o,i)=>`<button class="opt ${V.my===i?'sel':''}" data-i="${i}"><span class="L">${LET[i]}</span><span>${esc(o.t)}</span></button>`).join('')}</div>
+   <div class="pcard"><b>${esc(status)}</b><div class="mates">${(V.tv||[]).map(([n,o])=>`<div><span>${esc(n)}</span><span class="mut">${o==null?'ойлануда…':LET[o]+' нұсқасы'}</span></div>`).join('')}</div></div>`;
+  app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>send({t:'vote',q:V.si,o:+b.dataset.i}));
+  timerBar();
+ }
+ function rev(){
+  const sc=R2[V.si],r=V.rv;const bi=sc.o.reduce((b,o,i)=>o.s>sc.o[b].s?i:b,0);
+  const has=r&&r.ans!=null&&r.ans!=='tie';
+  app.innerHTML=`${head()}<div class="pcard" style="text-align:center;background:${r&&r.pts>=70?'var(--P)':'var(--card)'};color:${r&&r.pts>=70?'#08302c':'inherit'}">
+   <div class="big-ok">${r?'+'+r.pts:'—'}</div><p style="font-size:17px;margin:6px 0 0">${r?esc(r.note):''}</p></div>
+   ${has?`<div class="pcard"><span class="mut">Командаңыздың шешімі · сарапшы бағасы ${sc.o[r.ans].s}/100</span><h2 style="margin:6px 0 8px;font-size:19px">${LET[r.ans]}. ${esc(sc.o[r.ans].t)}</h2><p style="margin:0">${esc(sc.o[r.ans].w)}</p></div>`:''}
+   ${!has||r.ans!==bi?`<div class="pcard"><span class="mut">Ең сындарлы нұсқа</span><h2 style="margin:6px 0 8px;font-size:19px">${LET[bi]}. ${esc(sc.o[bi].t)}</h2><p style="margin:0">${esc(sc.o[bi].w)}</p></div>`:''}
+   <p class="mut"><b style="color:var(--S)">Кезең:</b> ${esc(sc.stage)}</p>`;
+ }
+ function refl(){
+  app.innerHTML=`${head()}<div class="kick" style="margin-top:14px">Жеке пікір · анонимді</div><h2>Ал сіздің академиялық тобыңыз қазір қай кезеңде?</h2>
+   <div class="opts">${STAGES.map((s,i)=>`<button class="opt ${V.my===i?'sel':''}" data-i="${i}"><span class="L">${i+1}</span><span><b>${s.name}</b><br><small class="mut">${s.d}</small></span></button>`).join('')}</div>`;
+  app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>send({t:'refl',o:+b.dataset.i}));
+ }
+ function end(){
+  const T=V.res?TYPES[V.res.type]:null;
+  app.innerHTML=`${head()}<div class="pcard" style="text-align:center"><svg width="80" height="40" class="orn"><use href="#orn"/></svg>
+   <h1 style="margin:12px 0">Ойын аяқталды!</h1>${V.rank?`<p style="font-size:20px">${esc(V.team.name)}: <b>${V.rank}-орын</b> · ${V.team.score} ұпай</p>`:''}
+   ${T?`<p class="mut">Сіз — ${T.name}, ${T.nick}. ${T.plus}</p>`:''}</div>
+   <p class="mut">Ұжым — тұлғалардың жай жиынтығы емес. Әртүрлі темпераменттер ортақ мақсатқа бағытталғанда ғана топ ұжымға айналады.</p>`;
+ }
+ if(code&&name)connect();else form();
+}
+}
+</script>
+</body>
+</html>
