@@ -161,8 +161,23 @@ body[data-th=r2]{--bg:#1e436f;--bg2:#18385d;--card:#2a5689;--card2:#32629b;--lin
 .pdots{display:flex;gap:6px}.pdots i{width:34px;height:7px;border-radius:4px;background:var(--line)}.pdots i.done{background:var(--P)}.pdots i.on{background:var(--acc)}
 /* ===== PHONE ===== */
 .phone .band{position:sticky;top:0;z-index:5}
-.stagebox.mini{max-width:none;width:100%;border-width:3px;border-radius:12px;margin-top:10px}
-.mini .bub,.mini .cap,.mini .chat{display:none}.mini .ov{font-size:10px}
+.stagebox.mini{max-width:none;width:calc(100% + 20px);margin-left:-10px;border-width:3px;border-radius:12px;margin-top:10px}
+.mini .ov{font-size:12px}
+.mini .bub{max-width:66%;padding:.3em .5em .35em;border-width:2px;box-shadow:2px 2px 0 #14232a;line-height:1.25}
+.mini .bub::after{width:9px;height:9px;bottom:-7px;border-width:2px}
+.mini .bub.older,.mini .bub.old{display:none}
+.mini .cap{display:none}
+.mini .chat{width:64%;left:2%;top:4%;padding:.4em;border-width:3px;border-radius:12px;font-size:11px}
+.mini .chat div:not(:nth-last-child(-n+3)){display:none}
+.mini .emo{border-width:2px;font-size:11px;padding:0 .35em}
+.pcap{background:#ffe9a8;color:#2a1d00;font-weight:600;border-radius:12px;padding:8px 12px;margin-top:10px;font-size:15px;line-height:1.35;min-height:2.7em}
+.pdone{margin-top:10px;font-size:14px;color:var(--mut);text-align:center}
+@media (orientation:landscape) and (max-height:540px){
+ .phone .band{display:none}.phone #app{max-width:none;padding:8px 12px}
+ .phone .look,.phone .who,.phone .kick{display:none}
+ .phone .playwrap{display:grid;grid-template-columns:minmax(0,1fr) 30%;gap:12px;align-items:start}
+ .phone .stagebox.mini{width:auto;height:calc(100vh - 20px);max-width:100%;margin:0}
+ .mini .ov{font-size:13px}}
 .tsc{display:grid;gap:6px;margin-top:10px}
 .tl{background:var(--card);border-radius:12px;padding:7px 12px;font-size:15px;line-height:1.35;animation:pop .3s}
 .tl b{display:block;font-size:12px;color:var(--nc,var(--S))}
@@ -578,7 +593,7 @@ function avatar(id){
  const c=document.createElement('canvas');c.width=12;c.height=12;const g=c.getContext('2d');
  drawChar(g,CAST[id],6,23,{pose:'stand'},0,false);AV[id]=c.toDataURL();return AV[id];
 }
-const dur=t=>Math.min(5600,1300+String(t).length*46);
+const dur=t=>Math.min(9000,2200+String(t).length*62);
 class Stage{
  constructor(box,scene,img){
   this.box=box;this.alive=true;this.tok=0;this.t=0;
@@ -849,9 +864,9 @@ function host(){
     <div class="pdots">${sc.parts.map((_,i)=>`<i class="${i<q.pi?'done':i===q.pi?'on':''}"></i>`).join('')}</div>
     ${S.ask?`<h2>${esc(q.q)}</h2><p class="mut" style="margin:0;font-size:15px">Әркім телефонда жеке, шын таңдайды. Дұрыс не бұрыс жоқ.</p>
     <div id="r1o" style="display:grid;gap:8px"></div><div class="count" style="margin-top:4px">Жауап берді: <b id="ac">0</b></div>`
-    :`<h2>Тақтаға қараңыз</h2><p class="mut" style="font-size:16px;margin:0">Оқиға біткен соң сұрақ әркімнің телефонында пайда болады.</p>`}<div class="feed" id="feed"></div></div>`,'sc',
+    :`<h2>Тақтаға қараңыз</h2><p class="mut" style="font-size:16px;margin:0">Оқиға студенттердің телефонында да жүріп жатыр. Барлығы оқып болған соң «Сұрақты ашу» батырмасын басыңыз — сұрақ әркімнің телефонында пайда болады.</p>`}<div class="feed" id="feed"></div></div>`,'sc',
     `${stageCtl}<span class="sp"></span>${S.ask?`<button class="ghost btn" id="shw">Топтың таңдауы</button><button class="ghost btn" id="rvl">Темпераментті ашу</button><button class="btn" id="go">${last?'Жеке талдауға өту':q.pi<sc.parts.length-1?'Оқиғаны жалғастыру':'Келесі оқиға'}</button>`:`<button class="btn" id="ask">Сұрақты ашу</button>`}`);
-   mountStage(R1,'r1',q,!S.ask,()=>openAsk());
+   mountStage(R1,'r1',q,!S.ask,()=>{const b=$('#ask');if(b)b.classList.add('pulse');});
    if(S.ask){$('#shw').onclick=()=>{S.show=!S.show;live();};$('#rvl').onclick=()=>{S.reveal=!S.reveal;S.show=true;live();};
     $('#go').onclick=()=>last?endR1():go('r1',{qi:S.qi+1});}
    else $('#ask').onclick=openAsk;
@@ -992,12 +1007,13 @@ function player(code0,b0){
   if(v.phase==='r1'&&prevPh!=='r1'&&prevPh!=='')splash(...SPL.r1);if(v.phase==='r2play'&&prevPh==='teams')splash(...SPL.r2);prevPh=v.phase;draw();}
  function play(R,rn,q,title){
   const img=imgFor(rn,q);
-  app.innerHTML=`${head()}<div class="kick" style="margin-top:12px">${title}</div>${look('Оқиға жүріп жатыр — қараңыз. Сұрақ осында өзі пайда болады.')}<div class="stagebox mini" id="pst"></div><div class="tsc" id="tsc"></div>`;
+  app.innerHTML=`${head()}<div class="kick" style="margin-top:12px">${title}</div>${look('Телефонды жатқызсаңыз, сурет үлкейеді. Сұрақ оқытушы ашқанда шығады.')}
+   <div class="playwrap"><div class="stagebox mini" id="pst"></div><div><div class="pcap" id="pcap">…</div><div class="pdone" id="pdone"></div></div></div>`;
   pStage=new Stage($('#pst'),R[q.si],img);
-  const tsc=$('#tsc');
-  if(img){tsc.innerHTML=recapLines(q.steps);}
-  else{pStage.onLine=(k,n,t,c)=>{tsc.insertAdjacentHTML('beforeend',tline(k,n,t,c));while(tsc.children.length>6)tsc.firstChild.remove();};
-   pStage.play(q.pi,()=>{tsc.insertAdjacentHTML('beforeend','<p class="mut" style="font-size:14px;margin:4px 0 0">Оқиға аяқталды. Оқытушы сұрақты ашқанша күте тұрыңыз…</p>');});}
+  const cap=$('#pcap');
+  if(img){cap.hidden=true;return;}
+  pStage.onLine=(k,n,t)=>{if(k==='cap')cap.textContent=t;};
+  pStage.play(q.pi,()=>{const d=$('#pdone');if(d)d.textContent='Оқиға аяқталды. Оқытушы сұрақты ашқанша күте тұрыңыз…';});
  }
  const recap=q=>`<details class="recap"><summary>Оқиғаны еске түсіру</summary><div class="tsc">${recapLines(q.steps)}</div></details>`;
  function draw(){
